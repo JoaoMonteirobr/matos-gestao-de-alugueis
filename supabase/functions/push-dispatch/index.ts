@@ -134,6 +134,14 @@ async function runDeviceTest(req: Request) {
     accepted ? 200 : 502);
 }
 
+async function diagnostic(req: Request) {
+  const auth = await requireAdmin(req);
+  if ('error' in auth) return json({ error: auth.error },
+    auth.error === 'unauthenticated' ? 401 : 403);
+  const firebase = await firebaseAuthorization();
+  return json({ ok: true, provider: 'firebase', configured: Boolean(firebase) });
+}
+
 async function dispatch(req: Request, action: unknown) {
   // Bloquear chamadas públicas antes de consultar qualquer credencial de servidor.
   const supplied = req.headers.get('x-push-dispatch-secret') || '';
@@ -201,5 +209,6 @@ Deno.serve(async (req: Request) => {
   // O teste é uma operação de usuário autenticado; dispatch é reservado ao cron.
   const body = await req.json().catch(() => ({}));
   if (body?.action === 'test') return runDeviceTest(req);
+  if (body?.action === 'diagnostic') return diagnostic(req);
   return dispatch(req, body?.action);
 });
