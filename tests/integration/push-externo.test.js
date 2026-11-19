@@ -72,7 +72,7 @@ describe('push externo seguro e confiável', () => {
     expect(client).not.toContain('registerSW(true)');
     expect(client).not.toContain('getRegistrations()');
     expect(client).toContain('window.testMatosRemotePush=async function()');
-    expect(client).toContain("body:JSON.stringify({action:'test'})");
+    expect(client).toContain("body:JSON.stringify({action:'test',device_token:deviceToken})");
     expect(client).toContain('window.getMatosPushDiagnostics=async function()');
     expect(client).toContain("const devices=await request('/rest/v1/push_dispositivos");
     expect(client).toContain('isIos()&&!isInstalled()');
@@ -84,7 +84,7 @@ describe('push externo seguro e confiável', () => {
     expect(edge).toContain("body?.action === 'diagnostic'");
     expect(alerts).toContain('testRemotePushUI()');
     expect(alerts).toContain('refreshMatosPushStatusUI()');
-    expect(index).toContain('/pwa.js?v=5');
-    expect(index).toContain('/alerts.js?v=20261119-1');
+    expect(index).toContain('/pwa.js?v=6');
+    expect(index).toContain('/alerts.js?v=20261119-2');
   });
 });
