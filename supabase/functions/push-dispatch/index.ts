@@ -134,7 +134,7 @@ async function runDeviceTest(req: Request) {
     accepted ? 200 : 502);
 }
 
-async function dispatch(req: Request) {
+async function dispatch(req: Request, action: unknown) {
   // Bloquear chamadas públicas antes de consultar qualquer credencial de servidor.
   const supplied = req.headers.get('x-push-dispatch-secret') || '';
   if (supplied.length < 64) return json({ error: 'unauthorized' }, 401);
@@ -146,6 +146,7 @@ async function dispatch(req: Request) {
   const firebase = await firebaseAuthorization();
   if (!firebase) return json({ error: 'firebase_credentials_not_configured' }, 503);
 
+  if (action === 'status') return json({ ok: true, provider: 'firebase', authenticated: true });
   const claim = await db.rpc('claim_push_fila', { p_limit: 5 });
   if (claim.error) return json({ error: 'queue_claim_failed' }, 500);
   if (!claim.data?.length) return json({ ok: true, processados: 0, enviados: 0, erros: 0 });
@@ -200,5 +201,5 @@ Deno.serve(async (req: Request) => {
   // O teste é uma operação de usuário autenticado; dispatch é reservado ao cron.
   const body = await req.json().catch(() => ({}));
   if (body?.action === 'test') return runDeviceTest(req);
-  return dispatch(req);
+  return dispatch(req, body?.action);
 });
