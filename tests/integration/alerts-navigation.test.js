@@ -7,7 +7,7 @@ const source = (name) => fs.readFileSync(path.join(process.cwd(), name), 'utf8')
 describe('Central de Alertas acessível após sobrescrita do menu', () => {
   test('menu moderno preserva Alertas ao reconstruir adminMenus e ownerMenus', () => {
     const main = source('simple-ui.js');
-    expect(main).toContain("var adminMain=['Dashboard','Alertas']");
+    expect(main).toContain("var adminMain=consultaMenus.concat(['Alertas','Acessos','Configurações'])");
     expect(main).toContain("var ownerMain=['Dashboard','Alertas'");
     expect(main).toContain('adminMenus=adminMain; ownerMenus=ownerMain');
     expect(source('alerts.js')).toContain("if(page==='Alertas')return alertasPage()");
