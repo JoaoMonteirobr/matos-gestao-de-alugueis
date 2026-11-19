@@ -2,60 +2,274 @@
 'use strict';
 if(adminMenus.indexOf('Alertas')<0)adminMenus.splice(1,0,'Alertas');
 if(ownerMenus.indexOf('Alertas')<0)ownerMenus.splice(1,0,'Alertas');
-function prioBadge(p){var map={urgente:'red',alta:'red',media:'yellow',baixa:'green'};return '<span class="badge '+(map[p]||'yellow')+'">'+esc((p||'média').charAt(0).toUpperCase()+(p||'média').slice(1))+'</span>'}
-function categoryLabel(t){var m={login:'Login',cobranca_atrasada:'Aluguel em atraso',cobranca_vencendo:'Conta a vencer',contrato_vencendo:'Contrato a vencer',contrato_vencido:'Contrato vencido',documento_vencendo:'Documento a vencer'};return m[t]||String(t||'Alerta').replaceAll('_',' ')}
-function statusMeta(a){if(a.tipo==='login')return a.resolvido?['Visto','green']:['Novo','blue'];if(a.resolvido)return ['Resolvido','green'];if(a.tipo==='cobranca_atrasada')return ['Em atraso','red'];if(a.tipo==='contrato_vencido')return ['Vencido','red'];if(a.tipo==='cobranca_vencendo'||a.tipo==='contrato_vencendo'||a.tipo==='documento_vencendo')return ['A vencer','yellow'];return ['Aberto','blue']}
-function statusBadge(a){var s=statusMeta(a);return '<span class="badge '+s[1]+'">'+esc(s[0])+'</span>'}
-function actionLabel(a){return a.tipo==='login'?'Marcar como visto':'Marcar como resolvido'}
-async function refreshAlerts(){if(currentRole!=='admin')return;try{await request('/rest/v1/rpc/gerar_alertas_operacionais',{method:'POST',headers:authHeaders(session.access_token),body:'{}'})}catch(e){}}
-async function resolveAlert(id){try{await request('/rest/v1/alertas?id=eq.'+encodeURIComponent(id),{method:'PATCH',headers:Object.assign(authHeaders(session.access_token),{'Prefer':'return=representation'}),body:JSON.stringify({resolvido:true,resolvido_em:new Date().toISOString()})});alertasPage()}catch(e){alert(e.message)}}
-window.resolveAlert=resolveAlert;
-function notifStatus(){if(!('Notification'in window))return 'Não suportado';if(Notification.permission==='granted')return localStorage.getItem('matos_push_token')?'Ativado neste aparelho':'Permissão concedida';if(Notification.permission==='denied')return 'Bloqueado no navegador';return 'Ainda não ativado'}
-async function activatePushUI(){var m=E('push_msg');if(m)m.innerHTML='<div class="notice">Preparando o serviço de push e registrando este aparelho...</div>';try{await window.enableRemotePush();if(m)m.innerHTML='<div class="notice success">Notificações remotas ativadas e aparelho registrado com sucesso.</div>';var s=E('push_status');if(s)s.textContent=notifStatus();refreshMatosPushStatusUI()}catch(e){if(m)m.innerHTML='<div class="notice err">'+esc(e.message)+'</div>'}}
-window.activatePushUI=activatePushUI;
-async function testPushUI(){var m=E('push_msg');if(m)m.innerHTML='<div class="notice">Enviando teste local...</div>';try{await window.testMatosNotification();if(m)m.innerHTML='<div class="notice success">Notificação local exibida. Isso confirma permissão e Service Worker.</div>'}catch(e){if(m)m.innerHTML='<div class="notice err">'+esc(e.message)+'</div>'}}
-window.testPushUI=testPushUI;
 
-async function testRemotePushUI(){
- var m=E('push_msg'),b=E('push_test_remote');
- if(m)m.innerHTML='<div class="notice">Solicitando teste externo ao servidor Firebase...</div>';
- if(b)b.disabled=true;
+var alertFilter='pendencias',alertsVisible=30,readIds=new Set();
+
+function categoryLabel(type){
+ var labels={login:'Acesso ao sistema',cobranca_atrasada:'Aluguel em atraso',
+  cobranca_vencendo:'Aluguel a vencer',contrato_vencendo:'Contrato a vencer',
+  contrato_vencido:'Contrato vencido',documento_vencendo:'Documento a vencer'};
+ return labels[type]||String(type||'Alerta').replaceAll('_',' ')
+}
+function unread(a){return !a.resolvido&&!readIds.has(a.id)}
+function operational(a){return a.tipo!=='login'}
+function visibleRows(){
+ var rows=window._alerts||[];
+ if(alertFilter==='pendencias')return rows.filter(function(a){return operational(a)&&!a.resolvido});
+ if(alertFilter==='nao_lidas')return rows.filter(unread);
+ if(alertFilter==='acessos')return rows.filter(function(a){return !operational(a)});
+ return rows
+}
+function counts(){
+ var all=window._alerts||[],active=all.filter(function(a){return operational(a)&&!a.resolvido});
+ return {unread:all.filter(unread).length,active:active.length,
+  urgent:active.filter(function(a){return a.prioridade==='urgente'}).length,
+  login:all.filter(function(a){return a.tipo==='login'}).length}
+}
+function dateAlert(a){return dateBR(a.data_evento||a.created_at)}
+function badgeMarkup(a){
+ var tag=operational(a)?a.prioridade:'login',text=tag==='urgente'?'Urgente':
+  tag==='alta'?'Alta prioridade':tag==='login'?'Acesso':'Informativo';
+ var color=tag==='urgente'?'danger':tag==='alta'?'warning':'muted';
+ return '<span class="alert-tag '+color+'">'+esc(text)+'</span>'
+}
+function rowMarkup(a){
+ var isUnread=unread(a),done=a.resolvido;
+ var actions=(isUnread?
+  '<button class="btn secondary" type="button" onclick="markAlertReadUI(\''+a.id+'\')">Marcar como lida</button>':'');
+ if(!done&&operational(a)&&currentRole==='admin'){
+  actions+='<button class="btn secondary" type="button" onclick="resolveAlert(\''+a.id+'\')">Resolver pendência</button>';
+ }
+ return '<article class="alert-entry'+(isUnread?' is-unread':'')+'">'+
+  '<div class="alert-entry-body"><div class="alert-meta">'+
+   '<span class="alert-category">'+esc(categoryLabel(a.tipo))+'</span>'+badgeMarkup(a)+
+   (isUnread?'<span class="alert-tag new">Não lida</span>':'')+
+   (done?'<span class="alert-tag done">Resolvido</span>':'')+'</div>'+
+   '<h4>'+esc(a.titulo||'Notificação')+'</h4>'+
+   '<p>'+esc(a.mensagem||'')+'</p>'+
+   '<small>'+esc(dateAlert(a))+'</small></div>'+
+   (actions?'<div class="alert-entry-actions">'+actions+'</div>':'')+'</article>'
+}
+function displayAlerts(){
+ var target=E('alerts_list');if(!target)return;
+ var total=counts(),nodes=visibleRows(),shown=nodes.slice(0,alertsVisible);
+ var boxes={unread:'alerts_stat_unread',active:'alerts_stat_active',urgent:'alerts_stat_urgent'};
+ Object.keys(boxes).forEach(function(key){var el=E(boxes[key]);if(el)el.textContent=String(total[key])});
+ var count=E('alerts_filter_count');if(count)count.textContent=String(nodes.length)+' registro(s)';
+ var btn=E('alerts_mark_all');if(btn)btn.disabled=!total.unread;
+ document.querySelectorAll('[data-alert-filter]').forEach(function(el){
+  var on=el.getAttribute('data-alert-filter')===alertFilter;
+  el.classList.toggle('selected',on);el.setAttribute('aria-pressed',on?'true':'false')
+ });
+ if(nodes.length===0){
+  var msg=alertFilter==='pendencias'?'Nenhuma pendência operacional aberta.':
+   alertFilter==='nao_lidas'?'Tudo lido! Não há notificações novas.':
+   'Nenhum alerta nesta categoria.';
+  target.innerHTML='<div class="alerts-empty">'+esc(msg)+'</div>';
+ }else target.innerHTML=shown.map(rowMarkup).join('');
+ var more=E('alerts_more');if(more){more.hidden=nodes.length<=alertsVisible;
+  more.textContent='Mostrar mais ('+(nodes.length-shown.length)+')'}
+}
+function changeAlertFilter(next){
+ if(['pendencias','nao_lidas','acessos','historico'].indexOf(next)<0)return;
+ alertFilter=next;alertsVisible=30;displayAlerts()
+}
+window.changeAlertFilter=changeAlertFilter;
+function message(text,isError){
+ var x=E('alerts_msg');if(x)x.innerHTML='<div class="notice '+(isError?'err':'success')+'">'+esc(text)+'</div>'
+}
+function errorText(e){
+ var s=String(e&&e.message||e||'Erro desconhecido');
+ if(/Failed to fetch|Load failed|NetworkError|network request failed/i.test(s))
+  return 'Não foi possível conectar ao servidor. Confira a internet e tente novamente.';
+ return s
+}
+async function refreshAlerts(){
+ if(currentRole!=='admin')return;
+ try{await request('/rest/v1/rpc/gerar_alertas_operacionais',{
+  method:'POST',headers:authHeaders(session.access_token),body:'{}'
+ })}catch(e){}
+}
+async function fetchAlertState(){
+ var results=await Promise.all([
+  request('/rest/v1/alertas?select=*&order=resolvido.asc,created_at.desc&limit=200',{
+   headers:authHeaders(session.access_token)}),
+  request('/rest/v1/alertas_leituras?select=alerta_id&user_id=eq.'+
+   encodeURIComponent(session.user.id)+'&limit=3000',{headers:authHeaders(session.access_token)})
+ ]);
+ window._alerts=results[0]||[];
+ readIds=new Set((results[1]||[]).map(function(a){return a.alerta_id}));
+}
+async function markAlertsRead(ids){
+ if(!session||!session.access_token)throw new Error('Faça login para marcar alertas como lidos.');
+ var result=await request('/rest/v1/rpc/marcar_alertas_como_lidos',{
+  method:'POST',headers:authHeaders(session.access_token),
+  body:JSON.stringify({p_ids:ids||null})
+ });
+ var candidates=(window._alerts||[]).filter(function(a){
+  return !a.resolvido&&(!ids||ids.indexOf(a.id)>=0)
+ });
+ candidates.forEach(function(a){readIds.add(a.id)});
+ displayAlerts();
+ if(typeof window.refreshMatosBell==='function')window.refreshMatosBell();
+ return Number(result||0)
+}
+async function markAllAlertsReadUI(){
+ var btn=E('alerts_mark_all');if(btn)btn.disabled=true;
  try{
-  var result=await window.testMatosRemotePush();
-  if(m)m.innerHTML='<div class="notice success">'+
-   'Firebase aceitou o envio para '+result.accepted_by_firebase+' aparelho(s). '+
-   'Confira a notificação do celular. A exibição depende das permissões do aparelho.</div>';
+  await markAlertsRead(null);
+  message('Notificações marcadas como lidas. As pendências continuam abertas até serem resolvidas.',false)
+ }catch(e){message('Não foi possível marcar todas como lidas. '+errorText(e),true);displayAlerts()}
+}
+window.markAllAlertsReadUI=markAllAlertsReadUI;
+async function markAlertReadUI(id){
+ try{await markAlertsRead([id])}catch(e){message(errorText(e),true)}
+}
+window.markAlertReadUI=markAlertReadUI;
+async function resolveAlert(id){
+ if(currentRole!=='admin')return;
+ try{
+  await request('/rest/v1/alertas?id=eq.'+encodeURIComponent(id),{
+   method:'PATCH',headers:Object.assign(authHeaders(session.access_token),
+    {'Prefer':'return=representation'}),
+   body:JSON.stringify({resolvido:true,resolvido_em:new Date().toISOString()})
+  });
+  await fetchAlertState();displayAlerts();
+  if(typeof window.refreshMatosBell==='function')window.refreshMatosBell();
+  message('Pendência marcada como resolvida.',false)
+ }catch(e){message(errorText(e),true)}
+}
+window.resolveAlert=resolveAlert;
+
+function notifStatus(){
+ if(!('Notification' in window))return 'Não suportado';
+ if(Notification.permission==='granted')return localStorage.getItem('matos_push_token')?'Ativado':'Permissão concedida';
+ if(Notification.permission==='denied')return 'Bloqueado';
+ return 'Não ativado'
+}
+function pushMessage(text,error){
+ var m=E('push_msg');if(m)m.innerHTML='<div class="notice '+(error?'err':'success')+'">'+esc(text)+'</div>'
+}
+async function activatePushUI(){
+ pushMessage('Registrando este aparelho...',false);
+ try{
+  await window.enableRemotePush();
+  pushMessage('Este aparelho foi registrado para notificações externas.',false);
+  var x=E('push_status');if(x)x.textContent=notifStatus();
   refreshMatosPushStatusUI()
- }catch(e){
-  if(m)m.innerHTML='<div class="notice err">'+esc(e.message)+'</div>'
- }finally{if(b)b.disabled=false}
+ }catch(e){pushMessage(errorText(e),true)}
+}
+window.activatePushUI=activatePushUI;
+async function testPushUI(){
+ try{
+  await window.testMatosNotification();
+  pushMessage('Teste local exibido. Esse teste verifica apenas o navegador.',false)
+ }catch(e){pushMessage(errorText(e),true)}
+}
+window.testPushUI=testPushUI;
+async function testRemotePushUI(){
+ var b=E('push_test_remote');if(b)b.disabled=true;
+ pushMessage('Consultando o Firebase...',false);
+ try{
+  var r=await window.testMatosRemotePush();
+  pushMessage('Firebase aceitou o envio para '+Number(r.accepted_by_firebase||0)+
+   ' aparelho(s). Confira as notificações do celular.',false);
+  refreshMatosPushStatusUI()
+ }catch(e){pushMessage(errorText(e),true)}
+ finally{if(b)b.disabled=false}
 }
 window.testRemotePushUI=testRemotePushUI;
 async function refreshMatosPushStatusUI(){
  var x=E('push_diagnostic'),server=E('push_server_status'),help=E('push_provider_help');
- if(!x)return;
+ if(!server)return;
  try{
   var d=await window.getMatosPushDiagnostics();
-  x.textContent=d.active?'Registrado no servidor ('+d.deviceCount+' aparelho(s) ativo(s))':
-   d.permission==='denied'?'Permissão bloqueada no navegador':
-   d.ios&&!d.installed?'Instale na Tela de Início (iPhone/iPad)':
-   d.permission==='granted'?'Aguardando ativação neste aparelho':'Ainda não ativado'
- }catch(e){x.textContent='Não foi possível consultar o registro no servidor'}
- if(server&&currentRole==='admin'){
+  if(x)x.textContent=d.active?'Registrado ('+d.deviceCount+' aparelhos ativos)':
+   d.permission==='denied'?'Notificações bloqueadas':
+   d.ios&&!d.installed?'Instale na Tela de Início no iPhone/iPad':
+   d.permission==='granted'?'Ative o registro neste aparelho':'Ainda não ativado';
+  var s=E('push_status');if(s)s.textContent=notifStatus()
+ }catch(e){if(x)x.textContent='Registro indisponível'}
+ if(currentRole==='admin'){
   try{
-   var result=await window.getMatosPushServerStatus();
-   server.textContent=result.configured?'Firebase conectado':'Credencial Firebase pendente';
-   if(help)help.style.display=result.configured?'none':''
+   var status=await window.getMatosPushServerStatus();
+   server.textContent=status.configured?'Firebase conectado':'Credencial Firebase pendente';
+   if(help)help.hidden=Boolean(status.configured)
   }catch(e){
-   server.textContent='Verificação externa indisponível';
-   if(help)help.style.display='none'
+   server.textContent='Não foi possível verificar a conexão';
+   if(help)help.hidden=true
   }
- }else if(server){server.textContent='Disponível apenas ao administrador'}
+ }else server.textContent='Disponível ao administrador'
 }
 window.refreshMatosPushStatusUI=refreshMatosPushStatusUI;
-
-async function resetPushUI(){var m=E('push_msg');if(m)m.innerHTML='<div class="notice">Limpando registro antigo de notificações...</div>';try{await window.resetMatosPush();if(m)m.innerHTML='<div class="notice success">Registro antigo removido. Agora toque em “Ativar notificações”.</div>';var s=E('push_status');if(s)s.textContent=notifStatus();refreshMatosPushStatusUI()}catch(e){if(m)m.innerHTML='<div class="notice err">'+esc(e.message)+'</div>'}}
+async function resetPushUI(){
+ try{
+  await window.resetMatosPush();
+  pushMessage('Registro desativado neste aparelho. Para receber avisos novamente, toque em Ativar.',false);
+  refreshMatosPushStatusUI()
+ }catch(e){pushMessage(errorText(e),true)}
+}
 window.resetPushUI=resetPushUI;
-async function alertasPage(){var C=E('content');C.innerHTML='<div class="panel">Atualizando alertas...</div>';await refreshAlerts();try{var data=await request('/rest/v1/alertas?select=*&order=resolvido.asc,created_at.desc&limit=200',{headers:authHeaders(session.access_token)});window._alerts=data||[];var ab=(data||[]).filter(function(x){return !x.resolvido}),urg=ab.filter(function(x){return x.prioridade==='urgente'}).length,alta=ab.filter(function(x){return x.prioridade==='alta'}).length;var rows=(data||[]).map(function(a){return '<tr><td>'+prioBadge(a.prioridade)+'</td><td><span class="badge blue">'+esc(categoryLabel(a.tipo))+'</span></td><td><b>'+esc(a.titulo)+'</b><div class="muted">'+esc(a.mensagem)+'</div></td><td>'+dateBR(a.data_evento)+'</td><td>'+statusBadge(a)+'</td><td>'+(currentRole==='admin'&&!a.resolvido?'<div class="rowactions"><button onclick="resolveAlert(\''+a.id+'\')">'+esc(actionLabel(a))+'</button></div>':'—')+'</td></tr>'}).join('');var controls='<div class="panel"><div class="panel-title"><h3>Notificações no celular</h3></div><p class="muted">Ative o aparelho para receber avisos quando o sistema estiver fechado. O teste <b>remoto</b> confirma se o Firebase aceitou o envio; o teste <b>local</b> verifica apenas o navegador.</p><p class="muted" style="font-size:12px">No iPhone/iPad, adicione o sistema à Tela de Início pelo Safari, abra pelo ícone e então ative as notificações.</p><div class="mini-fin"><div class="mini-stat"><small>Status neste aparelho</small><b id="push_status">'+esc(notifStatus())+'</b></div><div class="mini-stat"><small>Registro no servidor</small><b id="push_diagnostic">Verificando...</b></div><div class="mini-stat"><small>Entrega externa (Firebase)</small><b id="push_server_status">Verificando...</b></div><div class="mini-stat"><small>Aplicativo</small><b>'+(localStorage.getItem('matos_pwa_installed')?'Instalado':'Pode ser instalado')+'</b></div></div><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px"><button class="btn primary" onclick="activatePushUI()">Ativar notificações</button><button class="btn primary" id="push_test_remote" onclick="testRemotePushUI()">Testar push remoto (Firebase)</button><button class="btn secondary" onclick="testPushUI()">Testar notificação local</button><button class="btn secondary" onclick="resetPushUI()">Desativar registro neste aparelho</button><button class="btn secondary" onclick="installMatosApp()">Instalar aplicativo</button></div><p class="notice err" id="push_provider_help" style="display:none;margin-top:12px">A entrega externa está pendente: configure o segredo FIREBASE_SERVICE_ACCOUNT_JSON em Supabase → Edge Functions → Secrets. Não insira credenciais no aplicativo.</p><div id="push_msg" style="margin-top:10px"></div></div>';C.innerHTML='<div class="cards"><div class="card redish"><div class="cl">Urgentes</div><div class="num">'+urg+'</div></div><div class="card goldish"><div class="cl">Alta prioridade</div><div class="num">'+alta+'</div></div><div class="card blue"><div class="cl">Alertas abertos</div><div class="num">'+ab.length+'</div></div><div class="card greenish"><div class="cl">Resolvidos / vistos</div><div class="num">'+((data||[]).length-ab.length)+'</div></div></div>'+controls+'<div class="panel"><div class="panel-title"><h3>Central de Alertas</h3></div><p class="muted">Logins, atrasos, contas e contratos são classificados separadamente para facilitar a ação correta.</p><div class="tablewrap"><table class="table"><thead><tr><th>Prioridade</th><th>Categoria</th><th>Alerta</th><th>Data</th><th>Situação</th><th>Ações</th></tr></thead><tbody>'+(rows||'<tr><td colspan="6" class="empty">Nenhum alerta no momento.</td></tr>')+'</tbody></table></div></div>';refreshMatosPushStatusUI();if(window.matosScrollToPush){window.matosScrollToPush=false;var pushBtn=E('push_test_remote');if(pushBtn)pushBtn.scrollIntoView({block:'center',behavior:'smooth'})}}catch(e){C.innerHTML='<div class="notice err">'+esc(e.message)+'</div>'}}
-var oldLoad=window.load;window.load=async function(){if(page==='Alertas')return alertasPage();return oldLoad()};
+
+function alertToolbar(){
+ return '<div class="alerts-metrics">'+
+  '<div class="alerts-metric"><span>Não lidas</span><strong id="alerts_stat_unread">0</strong></div>'+
+  '<div class="alerts-metric"><span>Pendências em aberto</span><strong id="alerts_stat_active">0</strong></div>'+
+  '<div class="alerts-metric"><span>Urgentes</span><strong id="alerts_stat_urgent">0</strong></div>'+
+  '</div><section class="panel alerts-inbox">'+
+  '<div class="alerts-section-head"><div><h3>Caixa de entrada</h3>'+
+  '<p class="muted">Concentre-se nas pendências. Os acessos ficam em uma aba separada.</p></div>'+
+  '<button class="btn primary" type="button" id="alerts_mark_all" onclick="markAllAlertsReadUI()">Marcar todas como lidas</button></div>'+
+  '<div class="alerts-filter-bar" aria-label="Filtrar notificações">'+
+  '<button type="button" data-alert-filter="pendencias">Pendências</button>'+
+  '<button type="button" data-alert-filter="nao_lidas">Não lidas</button>'+
+  '<button type="button" data-alert-filter="acessos">Acessos</button>'+
+  '<button type="button" data-alert-filter="historico">Histórico completo</button></div>'+
+  '<p class="alerts-result-count" id="alerts_filter_count"></p>'+
+  '<div id="alerts_msg" role="status" aria-live="polite"></div>'+
+  '<div id="alerts_list" class="alerts-list"></div>'+
+  '<button class="btn secondary alerts-more" id="alerts_more" type="button" hidden>Mostrar mais</button>'+
+  '</section>'
+}
+function pushPanel(){
+ return '<section class="panel alerts-push"><div class="alerts-section-head">'+
+  '<div><h3>Notificações no celular</h3><p class="muted">Avisos mesmo com o sistema fechado.</p></div>'+
+  '<button class="btn primary" type="button" id="push_test_remote" onclick="testRemotePushUI()">Testar push remoto (Firebase)</button></div>'+
+  '<div class="alerts-push-status">'+
+  '<div><small>Neste aparelho</small><strong id="push_status">'+esc(notifStatus())+'</strong></div>'+
+  '<div><small>Servidor</small><strong id="push_server_status">Verificando...</strong></div></div>'+
+  '<details class="alerts-push-advanced" id="push_advanced"><summary>Ativar e configurar notificações</summary>'+
+  '<p class="muted">No iPhone/iPad, instale pelo Safari na Tela de Início antes de ativar o push.</p>'+
+  '<p class="muted">Registro do aparelho: <strong id="push_diagnostic">Verificando...</strong></p>'+
+  '<div class="alerts-push-actions">'+
+  '<button class="btn primary" type="button" onclick="activatePushUI()">Ativar notificações</button>'+
+  '<button class="btn secondary" type="button" onclick="testPushUI()">Testar notificação local</button>'+
+  '<button class="btn secondary" type="button" onclick="resetPushUI()">Desativar neste aparelho</button>'+
+  '<button class="btn secondary" type="button" onclick="installMatosApp()">Instalar aplicativo</button></div>'+
+  '</details>'+
+  '<p class="notice err" id="push_provider_help" hidden>A credencial Firebase ainda precisa ser configurada em Supabase → Edge Functions → Secrets.</p>'+
+  '<div id="push_msg" role="status" aria-live="polite"></div></section>'
+}
+async function alertasPage(){
+ var C=E('content');if(!C)return;
+ C.innerHTML='<div class="panel">Carregando alertas...</div>';
+ try{
+  await refreshAlerts();
+  await fetchAlertState();
+  C.innerHTML='<div class="alerts-page">'+alertToolbar()+pushPanel()+'</div>';
+  C.querySelectorAll('[data-alert-filter]').forEach(function(button){
+   button.onclick=function(){changeAlertFilter(button.getAttribute('data-alert-filter'))}
+  });
+  var more=E('alerts_more');if(more)more.onclick=function(){alertsVisible+=30;displayAlerts()};
+  displayAlerts();refreshMatosPushStatusUI();
+  if(window.matosScrollToPush){
+   window.matosScrollToPush=false;
+   var target=E('push_test_remote');if(target)target.scrollIntoView({block:'center',behavior:'smooth'})
+  }
+ }catch(e){C.innerHTML='<div class="notice err">Não foi possível carregar a Central de Alertas. '+
+  esc(errorText(e))+' <button class="btn secondary" type="button" onclick="load()">Tentar novamente</button></div>'}
+}
+window.alertasPage=alertasPage;
+var oldLoad=window.load;
+window.load=async function(){if(page==='Alertas')return alertasPage();return oldLoad()};
 })();
