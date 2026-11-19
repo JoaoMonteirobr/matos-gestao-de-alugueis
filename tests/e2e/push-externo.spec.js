@@ -71,6 +71,7 @@ async function openAdmin(page) {
         return respond({ ok: true, provider: 'firebase', configured: true });
       }
       expect(payload.action).toBe('test');
+      expect(payload.device_token).toBe('token-fcm-de-teste');
       return respond({ ok: true, accepted_by_firebase: 1, failed: 0, devices: 1 });
     }
     return respond([]);
@@ -129,7 +130,7 @@ test('atalho do sino permite testar push remoto Firebase no celular e desktop', 
     });
   });
   await page.locator('#push_test_remote').click();
-  await expect(page.locator('#push_msg')).toContainText('Firebase aceitou o envio para 1 aparelho');
+  await expect(page.locator('#push_msg')).toContainText('Firebase aceitou o envio para este aparelho');
   expect(errors).toEqual([]);
 });
 
