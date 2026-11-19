@@ -5,6 +5,9 @@ begin;
 alter table public.push_fila
   add column if not exists proxima_tentativa_em timestamptz;
 
+alter table public.push_dispositivos
+  add column if not exists ultimo_teste_em timestamptz;
+
 -- Não reutilizar notificações antigas; preserve o histórico e marque as
 -- mensagens não entregues como expiradas (nunca como "enviadas").
 update public.push_fila as f
