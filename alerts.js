@@ -218,6 +218,7 @@ async function refreshMatosPushStatusUI(){
 window.refreshMatosPushStatusUI=refreshMatosPushStatusUI;
 async function diagnosePushUI(){
  var msg=E('push_msg');if(!msg)return;
+ var hint=E('push_device_hint');if(hint)hint.hidden=true;
  try{
   var d=await window.diagnoseMatosPush();
   var checks=[
@@ -234,6 +235,29 @@ async function diagnosePushUI(){
  }catch(e){pushMessage('Não foi possível verificar o celular. '+errorText(e),true)}
 }
 window.diagnosePushUI=diagnosePushUI;
+
+async function repairPushUI(){
+ var button=E('push_repair'),hint=E('push_device_hint');
+ if(button)button.disabled=true;
+ if(hint)hint.hidden=true;
+ pushMessage('Verificando a inscrição diretamente no navegador...',false);
+ try{
+  var result=await window.repairMatosPush();
+  if(result.ok){
+   pushMessage(result.reason,false);
+  }else{
+   var step=result.stage==='browser'?'O serviço push do Chrome/Android recusou a inscrição. ':
+    result.stage==='firebase'?'O navegador aceitou a inscrição, mas o Firebase/servidor falhou. ':
+    'A inscrição não pôde ser confirmada. ';
+   pushMessage(step+result.reason,true);
+  }
+ }catch(e){pushMessage(errorText(e),true)}
+ finally{
+  if(button)button.disabled=false;
+  refreshMatosPushStatusUI()
+ }
+}
+window.repairPushUI=repairPushUI;
 async function resetPushUI(){
  try{
   await window.resetMatosPush();
@@ -276,6 +300,7 @@ function pushPanel(){
   '<div class="alerts-push-actions">'+
   '<button class="btn primary" type="button" onclick="activatePushUI()">Ativar notificações</button>'+
   '<button class="btn secondary" type="button" id="push_diagnose" onclick="diagnosePushUI()">Verificar meu celular</button>'+
+  '<button class="btn secondary" type="button" id="push_repair" onclick="repairPushUI()">Recuperar inscrição push</button>'+
   '<button class="btn secondary" type="button" onclick="testPushUI()">Testar notificação local</button>'+
   '<button class="btn secondary" type="button" onclick="resetPushUI()">Desativar neste aparelho</button>'+
   '<button class="btn secondary" type="button" onclick="installMatosApp()">Instalar aplicativo</button></div>'+
