@@ -51,8 +51,8 @@ describe('alertas simples, leitura privada e push com CORS', () => {
     expect(common).not.toContain("'Access-Control-Allow-Origin': '*'");
   });
   it('carrega layout compacto e mantém teste remoto acessível', () => {
-    expect(html).toContain('/alerts-ui.css?v=1');
-    expect(html).toContain('/alerts.js?v=20261119-1');
+    expect(html).toContain('/alerts-ui.css?v=2');
+    expect(html).toContain('/alerts.js?v=20261119-2');
     expect(html).toContain('/notification-session.js?v=3');
     expect(css).toContain('@media(max-width:640px)');
     expect(css).toContain('.alerts-filter-bar');
