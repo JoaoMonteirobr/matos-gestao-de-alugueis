@@ -21,7 +21,7 @@ async function diagnosticWithSubscription(subscription) {
  expect(begin).toBeGreaterThan(-1);
  expect(end).toBeGreaterThan(begin);
  const ctx={
-  window:{},
+  window:{Notification:{permission:'granted'}},
   isInstalled:()=>true,
   isIos:()=>false,
   navigator:{onLine:true,serviceWorker:{getRegistration:async()=>({
