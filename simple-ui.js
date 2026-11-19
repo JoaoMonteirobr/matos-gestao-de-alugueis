@@ -5,7 +5,7 @@
 // Mesma navegação operacional para administrador e proprietário de consulta geral.
 // A diferença é a permissão: somente o administrador recebe ações de escrita.
 var consultaMenus=['Dashboard','Cadastros','Inquilinos','Contratos','Pagamentos','IPTU','Chamados','Financeiro','Gastos','Relatórios'];
-var adminMain=['Dashboard','Alertas'].concat(consultaMenus.filter(function(x){return x!=='Dashboard'}),['Acessos','Configurações']);
+var adminMain=consultaMenus.concat(['Alertas','Acessos','Configurações']);
 var ownerMain=['Dashboard','Alertas','Pagamentos','IPTU','Chamados','Relatórios'];
 var tenantMain=['Dashboard','Pagamentos','IPTU','Chamados'];
 adminMenus=adminMain; ownerMenus=ownerMain; tenantMenus=tenantMain;
