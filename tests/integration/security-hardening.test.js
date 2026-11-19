@@ -44,6 +44,14 @@ describe('infrastructure security contracts', () => {
     expect(source).not.toContain('const who = profile.data?.nome || email;');
   });
 
+  test('login mantém auditoria sem duplicar pushes na fila', () => {
+    const source = read('supabase/functions/secure-login/index.ts');
+    expect(source).toContain(".from('alertas')");
+    expect(source).toContain("tipo: 'login'");
+    expect(source).not.toContain(".from('push_fila')");
+    expect(source).toContain('authResult.data.session');
+  });
+
   test('database migration applies least privilege and atomic queue claims', () => {
     const migrations = fs
       .readdirSync(path.join(root, 'supabase/migrations'))
