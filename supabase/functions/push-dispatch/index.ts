@@ -1,11 +1,11 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.117.2';
 import { GoogleAuth } from 'npm:google-auth-library@9.15.1';
-import { requireAdmin } from '../_shared/http.ts';
+import { corsHeaders, requireAdmin } from '../_shared/http.ts';
 
-function json(payload: unknown, status = 200) {
+function json(req: Request, payload: unknown, status = 200) {
   return new Response(JSON.stringify(payload), {
     status,
-    headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
+    headers: { ...corsHeaders(req), 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
   });
 }
 
@@ -96,24 +96,24 @@ async function sendToFirebase(
 
 async function runDeviceTest(req: Request) {
   const auth = await requireAdmin(req);
-  if ('error' in auth) return json({ error: auth.error }, auth.error === 'unauthenticated' ? 401 : 403);
+  if ('error' in auth) return json(req, { error: auth.error }, auth.error === 'unauthenticated' ? 401 : 403);
   const db = adminDb();
-  if (!db) return json({ error: 'push_server_not_configured' }, 503);
+  if (!db) return json(req, { error: 'push_server_not_configured' }, 503);
   const devices = await db.from('push_dispositivos')
     .select('id,endpoint,ultimo_teste_em')
     .eq('user_id', auth.user.id).eq('ativo', true)
     .order('ultimo_uso', { ascending: false }).limit(3);
-  if (devices.error) return json({ error: 'device_lookup_failed' }, 503);
-  if (!devices.data?.length) return json({ error: 'no_active_devices' }, 409);
+  if (devices.error) return json(req, { error: 'device_lookup_failed' }, 503);
+  if (!devices.data?.length) return json(req, { error: 'no_active_devices' }, 409);
 
   // Rate limit por usuário, persistente entre instâncias da função.
   const now = Date.now();
   if (devices.data.some((device) => device.ultimo_teste_em &&
     now - new Date(device.ultimo_teste_em).getTime() < 60000)) {
-    return json({ error: 'test_cooldown', retry_after_seconds: 60 }, 429);
+    return json(req, { error: 'test_cooldown', retry_after_seconds: 60 }, 429);
   }
   const firebase = await firebaseAuthorization();
-  if (!firebase) return json({ error: 'firebase_credentials_not_configured' }, 503);
+  if (!firebase) return json(req, { error: 'firebase_credentials_not_configured' }, 503);
   let accepted = 0;
   let failed = 0;
   for (const device of devices.data) {
@@ -130,34 +130,34 @@ async function runDeviceTest(req: Request) {
     if (result.ok) accepted++;
     else failed++;
   }
-  return json({ ok: accepted > 0, accepted_by_firebase: accepted, failed, devices: devices.data.length },
+  return json(req, { ok: accepted > 0, accepted_by_firebase: accepted, failed, devices: devices.data.length },
     accepted ? 200 : 502);
 }
 
 async function diagnostic(req: Request) {
   const auth = await requireAdmin(req);
-  if ('error' in auth) return json({ error: auth.error },
+  if ('error' in auth) return json(req, { error: auth.error },
     auth.error === 'unauthenticated' ? 401 : 403);
   const firebase = await firebaseAuthorization();
-  return json({ ok: true, provider: 'firebase', configured: Boolean(firebase) });
+  return json(req, { ok: true, provider: 'firebase', configured: Boolean(firebase) });
 }
 
 async function dispatch(req: Request, action: unknown) {
   // Bloquear chamadas públicas antes de consultar qualquer credencial de servidor.
   const supplied = req.headers.get('x-push-dispatch-secret') || '';
-  if (supplied.length < 64) return json({ error: 'unauthorized' }, 401);
+  if (supplied.length < 64) return json(req, { error: 'unauthorized' }, 401);
   const db = adminDb();
-  if (!db) return json({ error: 'push_server_not_configured' }, 503);
+  if (!db) return json(req, { error: 'push_server_not_configured' }, 503);
   const verified = await db.rpc('validar_chave_dispatch_push', { p_chave: supplied });
-  if (verified.error) return json({ error: 'push_auth_not_configured' }, 503);
-  if (verified.data !== true) return json({ error: 'unauthorized' }, 401);
+  if (verified.error) return json(req, { error: 'push_auth_not_configured' }, 503);
+  if (verified.data !== true) return json(req, { error: 'unauthorized' }, 401);
   const firebase = await firebaseAuthorization();
-  if (!firebase) return json({ error: 'firebase_credentials_not_configured' }, 503);
+  if (!firebase) return json(req, { error: 'firebase_credentials_not_configured' }, 503);
 
-  if (action === 'status') return json({ ok: true, provider: 'firebase', authenticated: true });
+  if (action === 'status') return json(req, { ok: true, provider: 'firebase', authenticated: true });
   const claim = await db.rpc('claim_push_fila', { p_limit: 5 });
-  if (claim.error) return json({ error: 'queue_claim_failed' }, 500);
-  if (!claim.data?.length) return json({ ok: true, processados: 0, enviados: 0, erros: 0 });
+  if (claim.error) return json(req, { error: 'queue_claim_failed' }, 500);
+  if (!claim.data?.length) return json(req, { ok: true, processados: 0, enviados: 0, erros: 0 });
 
   let sent = 0;
   let failed = 0;
@@ -201,11 +201,15 @@ async function dispatch(req: Request, action: unknown) {
       else failed++;
     }
   }
-  return json({ ok: true, processados: claim.data.length, enviados: sent, erros: failed, reagendados: retried });
+  return json(req, { ok: true, processados: claim.data.length, enviados: sent, erros: failed, reagendados: retried });
 }
 
 Deno.serve(async (req: Request) => {
-  if (req.method !== 'POST') return json({ error: 'method_not_allowed' }, 405);
+  // O navegador realiza preflight CORS antes do POST autenticado.
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { status: 204, headers: corsHeaders(req) });
+  }
+  if (req.method !== 'POST') return json(req, { error: 'method_not_allowed' }, 405);
   // O teste é uma operação de usuário autenticado; dispatch é reservado ao cron.
   const body = await req.json().catch(() => ({}));
   if (body?.action === 'test') return runDeviceTest(req);

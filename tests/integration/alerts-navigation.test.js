@@ -22,15 +22,16 @@ describe('Central de Alertas acessível após sobrescrita do menu', () => {
     expect(client).toContain('window.matosScrollToPush=true;openAlerts()');
     expect(client).toContain("page='Alertas';rememberPage();shell()");
     expect(styles).toContain('.notify-footer');
-    expect(source('alerts.js')).toContain("pushBtn.scrollIntoView({block:'center',behavior:'smooth'})");
+    expect(source('alerts.js')).toContain("target.scrollIntoView({block:'center',behavior:'smooth'})");
   });
 
   test('login fica no histórico, mas não ocupa o badge do sino operacional', () => {
     const client = source('notification-session.js');
     const center = source('alerts.js');
     expect(client).toContain('&tipo=neq.login&order=created_at.desc');
-    expect(center).toContain("if(a.tipo==='login')return");
-    expect(center).toContain("Novo");
+    expect(center).toContain("if(alertFilter==='acessos')");
+    expect(center).toContain("categoryLabel(a.tipo)");
+    expect(client).toContain("new Set((result[1]||[]).map");
   });
 
   test('Playwright usa o servidor local com mocks em vez de pular testes', () => {
