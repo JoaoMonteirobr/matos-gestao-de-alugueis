@@ -201,7 +201,7 @@ Deno.serve(async (req: Request) => {
   const who = profile.data?.nome?.trim() || 'Usuário';
   const device = deviceLabel(userAgent);
   const loginTime = new Date().toLocaleString('pt-BR', { timeZone: 'America/Rio_Branco' });
-  const alert = await db
+  await db
     .from('alertas')
     .insert({
       tipo: 'login',
@@ -211,21 +211,7 @@ Deno.serve(async (req: Request) => {
       data_evento: new Date().toISOString().slice(0, 10),
       referencia_key: `login:${authResult.data.user.id}:${Date.now()}`,
       resolvido: false,
-    })
-    .select('id')
-    .single();
-  const admins = await db.from('perfis').select('user_id').eq('role', 'admin');
-  if (alert.data?.id && admins.data?.length) {
-    await db.from('push_fila').insert(
-      admins.data.map((admin) => ({
-        alerta_id: alert.data.id,
-        user_id: admin.user_id,
-        titulo: 'Novo login – Matos',
-        mensagem: `${who} acessou o sistema em ${device}.`,
-        url: '/',
-      })),
-    );
-  }
+    });
 
   return json(req, { session: authResult.data.session, user: authResult.data.user });
 });
