@@ -157,3 +157,51 @@ test('marcar todas como lidas não resolve contratos e mantém leitura após rec
   await expect(page.locator('#alerts_stat_active')).toHaveText('1');
   expect(errors).toEqual([]);
 });
+
+
+test('Android: falha do serviço push apresenta diagnóstico e não marca celular como ativo', async ({ page }) => {
+  const errors = [];
+  page.on('pageerror', (error) => errors.push(error.message));
+  await openAdmin(page);
+  await page.locator('#notify_bell').click();
+  await page.locator('#notify_push').click();
+  await expect(page.locator('#push_test_remote')).toBeVisible();
+  await page.locator('#push_advanced').evaluate((element) => { element.open = true; });
+
+  await page.evaluate(() => {
+    localStorage.setItem('matos_push_last_error', 'push-service-error');
+    window.enableRemotePush = async () => {
+      throw new Error(window.MatosPushFailure.message(
+        new Error('Registration failed - push service error'),
+      ));
+    };
+    window.getMatosPushDiagnostics = async () => ({
+      permission: 'granted',
+      ios: false,
+      installed: false,
+      online: true,
+      workerActive: true,
+      pushSubscription: false,
+      serverRegistered: true,
+      deviceCount: 2,
+      lastError: 'push-service-error',
+      active: false,
+    });
+    window.diagnoseMatosPush = async () => ({
+      permission: 'granted', online: true, workerActive: true,
+      pushSubscription: false, serverRegistered: true, active: false,
+      advice: 'O Chrome/Android recusou a inscrição. Verifique Chrome e Serviços do Google Play.',
+    });
+  });
+  await page.evaluate(() => window.refreshMatosPushStatusUI());
+  await expect(page.locator('#push_status')).toHaveText('Falha no serviço push do Android');
+  await expect(page.locator('#push_device_hint')).toBeVisible();
+  await page.getByRole('button', { name: 'Ativar notificações' }).click();
+  await expect(page.locator('#push_msg')).toContainText('O serviço push do Chrome/Android recusou a inscrição');
+  await expect(page.locator('#push_msg')).toContainText('Serviços do Google Play');
+
+  await page.locator('#push_diagnose').click();
+  await expect(page.locator('#push_msg')).toContainText('Inscrição push do navegador: não encontrada');
+  await expect(page.locator('#push_msg')).toContainText('Verifique Chrome e Serviços do Google Play.');
+  expect(errors).toEqual([]);
+});
