@@ -1,15 +1,38 @@
 import { expect, test } from '@playwright/test';
 
-test('push remoto: interface distingue teste externo e mostra aceite pelo Firebase', async ({ page }) => {
-  test.skip(Boolean(process.env.PLAYWRIGHT_BASE_URL), 'Teste funcional com respostas simuladas é executado apenas no build local.');
-  const userId = '00000000-0000-4000-8000-000000000001';
+const USER_ID = '00000000-0000-4000-8000-000000000001';
+const LOGIN_ALERT = {
+  id: '00000000-0000-4000-8000-000000000002',
+  tipo: 'login',
+  titulo: 'Novo acesso ao sistema',
+  mensagem: 'Admin entrou no sistema.',
+  prioridade: 'media',
+  data_evento: '2026-11-18',
+  resolvido: false,
+  created_at: '2026-11-18T23:00:00Z',
+};
+const OPERATIONAL_ALERT = {
+  id: '00000000-0000-4000-8000-000000000003',
+  tipo: 'contrato_vencendo',
+  titulo: 'Contrato próximo do vencimento',
+  mensagem: 'Contrato de teste vence em breve.',
+  prioridade: 'alta',
+  data_evento: '2026-11-30',
+  resolvido: false,
+  created_at: '2026-11-18T22:00:00Z',
+};
+
+async function openAdmin(page) {
+  // No CI o app local contém dados simulados. Não tenta fazer login real.
+  test.skip(process.env.MATOS_E2E_EXTERNAL === '1', 'Não simular uma sessão em produção.');
+
   await page.addInitScript((id) => {
     localStorage.setItem('matos_session', JSON.stringify({
       access_token: 'token-teste',
       user: { id, email: 'teste@example.invalid' },
     }));
     localStorage.setItem('matos_push_token', 'token-fcm-de-teste');
-  }, userId);
+  }, USER_ID);
 
   await page.route('https://behmmbgbrsesxthsczdl.supabase.co/**', async (route) => {
     const url = new URL(route.request().url());
@@ -19,42 +42,75 @@ test('push remoto: interface distingue teste externo e mostra aceite pelo Fireba
       headers: { 'access-control-allow-origin': '*' },
       body: JSON.stringify(data),
     });
-    if (url.pathname === '/auth/v1/user') return respond({ id: userId, email: 'teste@example.invalid' });
-    if (url.pathname === '/rest/v1/perfis') return respond([{ user_id: userId, nome: 'Admin de teste', role: 'admin' }]);
-    if (url.pathname === '/rest/v1/alertas') return respond([]);
-    if (url.pathname === '/rest/v1/push_dispositivos') return respond([
-      { endpoint: 'token-fcm-de-teste', ativo: true },
-    ]);
+    if (url.pathname === '/auth/v1/user') {
+      return respond({ id: USER_ID, email: 'teste@example.invalid' });
+    }
+    if (url.pathname === '/rest/v1/perfis') {
+      return respond([{ user_id: USER_ID, nome: 'Admin de teste', role: 'admin' }]);
+    }
+    if (url.pathname === '/rest/v1/alertas') {
+      if (url.searchParams.get('tipo') === 'neq.login') return respond([OPERATIONAL_ALERT]);
+      return respond([LOGIN_ALERT, OPERATIONAL_ALERT]);
+    }
+    if (url.pathname === '/rest/v1/push_dispositivos') {
+      return respond([{ endpoint: 'token-fcm-de-teste', ativo: true }]);
+    }
     if (url.pathname === '/functions/v1/push-dispatch') {
-      const data = route.request().postDataJSON();
-      if (data.action === 'diagnostic') return respond({ ok: true, provider: 'firebase', configured: false });
-      expect(data.action).toBe('test');
+      const payload = route.request().postDataJSON();
+      if (payload.action === 'diagnostic') {
+        return respond({ ok: true, provider: 'firebase', configured: true });
+      }
+      expect(payload.action).toBe('test');
       return respond({ ok: true, accepted_by_firebase: 1, failed: 0, devices: 1 });
     }
     return respond([]);
   });
 
+  await page.goto('/');
+  await expect(page.locator('#notify_bell')).toBeVisible();
+}
+
+test('sino: Ver todas abre Alertas e mostra configuração de push', async ({ page }) => {
   const errors = [];
   page.on('pageerror', (error) => errors.push(error.message));
-  await page.goto('/');
-  await page.evaluate(() => window.goQuick('Alertas'));
-  await expect(page.locator('#push_test_remote')).toBeVisible();
-  await expect(page.locator('#content')).toContainText('Testar notificação local');
-  await expect(page.locator('#content')).toContainText('Firebase');
-  await expect(page.locator('#push_server_status')).toContainText('Credencial Firebase pendente');
+  await openAdmin(page);
 
-  // A permissão real pertence ao usuário; somente este teste simula o diagnóstico.
+  await page.locator('#notify_bell').click();
+  await expect(page.locator('#notify_all')).toBeVisible();
+  await expect(page.locator('#notify_count')).toHaveText('1');
+  await expect(page.locator('#notify_list')).not.toContainText('Novo acesso ao sistema');
+  await expect(page.locator('#notify_list')).toContainText('Contrato próximo do vencimento');
+
+  await page.locator('#notify_all').click();
+  await expect(page.getByRole('heading', { name: 'Alertas', exact: true })).toBeVisible();
+  await expect(page.locator('#push_test_remote')).toBeVisible();
+  await expect(page.locator('#push_server_status')).toHaveText('Firebase conectado');
+  await expect(page.locator('.side [data-page="Alertas"]')).toHaveCount(1);
+  await expect(page.locator('#content')).toContainText('Novo acesso ao sistema');
+
+  await page.reload();
+  await expect(page.getByRole('heading', { name: 'Alertas', exact: true })).toBeVisible();
+  await expect(page.locator('#push_test_remote')).toBeVisible();
+  expect(errors).toEqual([]);
+});
+
+test('atalho do sino permite testar push remoto Firebase no celular e desktop', async ({ page }) => {
+  const errors = [];
+  page.on('pageerror', (error) => errors.push(error.message));
+  await openAdmin(page);
+
+  await page.locator('#notify_bell').click();
+  await page.locator('#notify_push').click();
+  await expect(page.getByRole('heading', { name: 'Alertas', exact: true })).toBeVisible();
+  await expect(page.locator('#push_test_remote')).toBeVisible();
+
+  // O serviço de permissão do navegador e a conta são simulados: não emite push real.
   await page.evaluate(() => {
     window.getMatosPushDiagnostics = async () => ({
-      active: true,
-      permission: 'granted',
-      serverRegistered: true,
-      deviceCount: 1,
-      ios: false,
-      installed: true,
+      active: true, permission: 'granted',
+      serverRegistered: true, deviceCount: 1, ios: false, installed: true,
     });
   });
-
   await page.locator('#push_test_remote').click();
   await expect(page.locator('#push_msg')).toContainText('Firebase aceitou o envio para 1 aparelho');
   expect(errors).toEqual([]);

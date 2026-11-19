@@ -17,7 +17,7 @@ if (server) {
 
 const playwrightCli = resolve('node_modules', '@playwright', 'test', 'cli.js');
 const child = spawn(process.execPath, [playwrightCli, 'test', ...process.argv.slice(2)], {
-  env: { ...process.env, PLAYWRIGHT_BASE_URL: baseURL },
+  env: { ...process.env, PLAYWRIGHT_BASE_URL: baseURL, MATOS_E2E_EXTERNAL: process.env.PLAYWRIGHT_BASE_URL ? '1' : '0' },
   stdio: 'inherit',
 });
 
