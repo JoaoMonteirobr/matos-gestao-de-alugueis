@@ -78,9 +78,13 @@ describe('push externo seguro e confiável', () => {
     expect(client).toContain('isIos()&&!isInstalled()');
     expect(client).toContain('window.matchMedia');
     expect(alerts).toContain('Testar push remoto (Firebase)');
+    expect(alerts).toContain('push_server_status');
+    expect(alerts).toContain('Credencial Firebase pendente');
+    expect(client).toContain('window.getMatosPushServerStatus=async function()');
+    expect(edge).toContain("body?.action === 'diagnostic'");
     expect(alerts).toContain('testRemotePushUI()');
     expect(alerts).toContain('refreshMatosPushStatusUI()');
-    expect(index).toContain('/pwa.js?v=4');
-    expect(index).toContain('/alerts.js?v=20261118-1');
+    expect(index).toContain('/pwa.js?v=5');
+    expect(index).toContain('/alerts.js?v=20261118-2');
   });
 });
