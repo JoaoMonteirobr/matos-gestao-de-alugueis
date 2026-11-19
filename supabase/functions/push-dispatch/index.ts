@@ -2,8 +2,6 @@ import { createClient } from 'npm:@supabase/supabase-js@2.117.2';
 import { GoogleAuth } from 'npm:google-auth-library@9.15.1';
 import { requireAdmin } from '../_shared/http.ts';
 
-type Db = ReturnType<typeof createClient>;
-
 function json(payload: unknown, status = 200) {
   return new Response(JSON.stringify(payload), {
     status,
