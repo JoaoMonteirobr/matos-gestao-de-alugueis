@@ -59,7 +59,7 @@ async function openAdmin(page) {
     if (url.pathname === '/rest/v1/rpc/marcar_alertas_como_lidos') {
       const data = route.request().postDataJSON();
       const ids = data.p_ids || [LOGIN_ALERT.id, OPERATIONAL_ALERT.id];
-      ids.forEach((id) => readByUser.add(id));
+      ids.forEach((id) => { readByUser.add(id); });
       return respond(ids.length);
     }
     if (url.pathname === '/rest/v1/push_dispositivos') {
