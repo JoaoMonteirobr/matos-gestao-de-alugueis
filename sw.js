@@ -13,7 +13,7 @@ const firebaseConfig = {
 
 firebase.initializeApp(firebaseConfig);
 const messaging = firebase.messaging();
-const CACHE = 'matos-public-shell-v4';
+const CACHE = 'matos-public-shell-v5';
 const SHELL = ['/', '/index.html', '/style.css'];
 const PUBLIC_DESTINATIONS = new Set(['document', 'style', 'script', 'image', 'font', 'manifest']);
 const PRIVATE_PATH_PREFIXES = ['/auth/', '/rest/', '/storage/', '/functions/'];
@@ -90,9 +90,11 @@ self.addEventListener('fetch', (event) => {
 messaging.onBackgroundMessage((payload) => {
   const notification = payload.notification || {};
   const data = payload.data || {};
-  self.registration.showNotification(notification.title || 'Matos – Gestão de Aluguéis', {
+  self.registration.showNotification(notification.title || data.title || 'Matos – Gestão de Aluguéis', {
     body: notification.body || data.body || 'Você tem uma nova notificação.',
     tag: data.tag || 'matos-alerta',
+    icon: '/matos-marca.svg?v=2',
+    badge: '/matos-marca.svg?v=2',
     data: { url: safeNotificationUrl(data.url) },
     renotify: true,
   });
