@@ -122,6 +122,16 @@ window.getMatosPushDiagnostics=async function(){
  result.active=result.permission==='granted'&&result.serverRegistered;
  return result
 };
+window.getMatosPushServerStatus=async function(){
+ if(!session||!session.access_token)throw new Error('Sessão não autenticada.');
+ if(currentRole!=='admin')return {configured:false,notAuthorized:true};
+ const response=await fetch(SUPA_URL+'/functions/v1/push-dispatch',{
+  method:'POST',headers:headers(),body:JSON.stringify({action:'diagnostic'})
+ });
+ if(!response.ok)throw new Error('Não foi possível consultar o servidor Firebase.');
+ const payload=await response.json();
+ return {configured:payload.configured===true,provider:'Firebase'}
+};
 window.testMatosRemotePush=async function(){
  if(!session||!session.access_token)throw new Error('Faça login para testar.');
  if(currentRole!=='admin')throw new Error('Teste remoto disponível somente ao administrador.');

@@ -27,6 +27,7 @@ test('push remoto: interface distingue teste externo e mostra aceite pelo Fireba
     ]);
     if (url.pathname === '/functions/v1/push-dispatch') {
       const data = route.request().postDataJSON();
+      if (data.action === 'diagnostic') return respond({ ok: true, provider: 'firebase', configured: false });
       expect(data.action).toBe('test');
       return respond({ ok: true, accepted_by_firebase: 1, failed: 0, devices: 1 });
     }
@@ -40,6 +41,7 @@ test('push remoto: interface distingue teste externo e mostra aceite pelo Fireba
   await expect(page.locator('#push_test_remote')).toBeVisible();
   await expect(page.locator('#content')).toContainText('Testar notificação local');
   await expect(page.locator('#content')).toContainText('Firebase');
+  await expect(page.locator('#push_server_status')).toContainText('Credencial Firebase pendente');
 
   // A permissão real pertence ao usuário; somente este teste simula o diagnóstico.
   await page.evaluate(() => {
