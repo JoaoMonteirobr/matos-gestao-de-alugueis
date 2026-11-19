@@ -204,6 +204,57 @@ window.testMatosNotification=async function(){
  });
  return true
 };
+function vapidKeyBytes(value){
+ if(typeof value!=='string'||!/^[A-Za-z0-9_-]{80,100}$/.test(value))
+  throw new Error('A chave pública Web Push do Firebase é inválida.');
+ const base64=value.replace(/-/g,'+').replace(/_/g,'/');
+ const padded=base64+'='.repeat((4-base64.length%4)%4);
+ let decoded;
+ try{decoded=atob(padded)}catch(_){throw new Error('A chave pública Web Push não pôde ser decodificada.')}
+ const bytes=Uint8Array.from(decoded,c=>c.charCodeAt(0));
+ if(bytes.length!==65||bytes[0]!==4)throw new Error('A chave Web Push não tem o formato esperado.');
+ return bytes
+}
+window.MatosVapidKeyBytes=vapidKeyBytes;
+// Executa somente por ação explícita do usuário. Isola o PushManager do SDK
+// Firebase, sem revogar registros de outros aparelhos nem limpar dados.
+window.repairMatosPush=async function(){
+ if(!session||!session.user)throw new Error('Faça login para recuperar as notificações.');
+ if(!window.MATOS_FIREBASE||!window.MATOS_FIREBASE.vapidKey)
+  throw new Error('A chave VAPID pública do Firebase está indisponível.');
+ if(isIos()&&!isInstalled())throw new Error(installHint());
+ if(!('Notification' in window)||!('PushManager' in window))
+  throw new Error('Este navegador não suporta inscrição Web Push.');
+ let permission=Notification.permission;
+ if(permission==='default')permission=await Notification.requestPermission();
+ if(permission!=='granted')throw new Error('Permissão de notificações bloqueada no navegador.');
+ const reg=await registerSW();
+ if(!reg.pushManager)throw new Error('O serviço PushManager não está disponível neste navegador.');
+ let subscription=await reg.pushManager.getSubscription();
+ if(!subscription){
+  try{
+   subscription=await reg.pushManager.subscribe({
+    userVisibleOnly:true,applicationServerKey:vapidKeyBytes(window.MATOS_FIREBASE.vapidKey)
+   })
+  }catch(e){
+   localStorage.setItem('matos_push_last_error',pushFailureCode(e));
+   return {ok:false,stage:'browser',reason:pushFailureMessage(e)}
+  }
+ }
+ if(!subscription)return {ok:false,stage:'browser',reason:'O navegador não conseguiu criar uma inscrição push.'};
+ try{
+  await window.enableRemotePush();
+ }catch(e){
+  return {ok:false,stage:'firebase',reason:String(e&&e.message||e||'Falha na sincronização do Firebase.').slice(0,350)}
+ }
+ const d=await window.getMatosPushDiagnostics();
+ return {
+  ok:Boolean(d.active),stage:d.active?'done':'sync',
+  reason:d.active?
+   'Inscrição do navegador e registro do Firebase/Supabase confirmados neste celular. Agora execute o teste remoto.':
+   'A inscrição do navegador foi criada, mas o registro deste aparelho não pôde ser confirmado no servidor.'
+ }
+};
 window.diagnoseMatosPush=async function(){
  const d=await window.getMatosPushDiagnostics();
  return {

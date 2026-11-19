@@ -205,3 +205,33 @@ test('Android: falha do serviço push apresenta diagnóstico e não marca celula
   await expect(page.locator('#push_msg')).toContainText('Verifique Chrome e Serviços do Google Play.');
   expect(errors).toEqual([]);
 });
+
+
+test('reparação: Chrome Android falha na inscrição nativa sem afirmar que Firebase falhou', async ({ page }) => {
+  const errors=[];
+  page.on('pageerror',(e)=>errors.push(e.message));
+  await openAdmin(page);
+  await page.locator('#notify_bell').click();
+  await page.locator('#notify_push').click();
+  await page.locator('#push_advanced').evaluate((el)=>{el.open=true});
+  await expect(page.locator('#push_repair')).toBeVisible();
+
+  await page.evaluate(()=>{
+    window.repairMatosPush=async()=>({
+      ok:false,stage:'browser',reason:'O Chrome/Android recusou a inscrição push.'
+    });
+  });
+  await page.locator('#push_repair').click();
+  await expect(page.locator('#push_msg')).toContainText('O serviço push do Chrome/Android recusou a inscrição');
+  await expect(page.locator('#push_msg')).not.toContainText('Credencial Firebase pendente');
+  await expect(page.locator('#push_repair')).toBeEnabled();
+
+  await page.evaluate(()=>{
+    window.repairMatosPush=async()=>({
+      ok:true,stage:'done',reason:'Inscrição do navegador e registro do Firebase/Supabase confirmados neste celular.'
+    });
+  });
+  await page.locator('#push_repair').click();
+  await expect(page.locator('#push_msg')).toContainText('Inscrição do navegador e registro do Firebase/Supabase confirmados');
+  expect(errors).toEqual([]);
+});
