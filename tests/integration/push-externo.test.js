@@ -29,7 +29,7 @@ describe('push externo seguro e confiável', () => {
     expect(edge).toContain(".eq('user_id', auth.user.id)");
     expect(edge).toContain("body?.action === 'test'");
     expect(edge).toContain("accepted_by_firebase:");
-    expect(edge).toContain("if (action === 'status') return json({ ok: true, provider: 'firebase', authenticated: true });");
+    expect(edge).toContain("if (action === 'status') return json(req, { ok: true, provider: 'firebase', authenticated: true });");
     expect(edge).toContain('retry_after_seconds: 60');
     expect(edge.indexOf("if (supplied.length < 64)")).toBeLessThan(edge.indexOf("const db = adminDb();", edge.indexOf('async function dispatch(')));
     expect(edge).not.toContain('FIREBASE_SERVICE_ACCOUNT_JSON='); // credencial só em ambiente
@@ -85,6 +85,6 @@ describe('push externo seguro e confiável', () => {
     expect(alerts).toContain('testRemotePushUI()');
     expect(alerts).toContain('refreshMatosPushStatusUI()');
     expect(index).toContain('/pwa.js?v=5');
-    expect(index).toContain('/alerts.js?v=20261118-3');
+    expect(index).toContain('/alerts.js?v=20261119-1');
   });
 });
