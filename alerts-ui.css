@@ -46,7 +46,11 @@
 .alerts-push-advanced .muted{font-size:12px;margin:10px 0}
 .alerts-push-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
 .alerts-push-actions .btn{font-size:12px!important}
-.alerts-page #push_provider_help[hidden]{display:none}
+ .alerts-page #push_provider_help[hidden],.alerts-page #push_device_hint[hidden]{display:none}
+.alerts-page #push_msg ul{padding-left:20px;margin:10px 0}
+.alerts-page #push_msg li{margin:5px 0;line-height:1.5}
+.alerts-page #push_msg p{line-height:1.6;margin:10px 0 0}
+.alerts-page #push_device_hint{font-size:13px;line-height:1.55}
 @media(max-width:900px){
  .alerts-section-head{align-items:flex-start}
  .alert-entry{display:block}
