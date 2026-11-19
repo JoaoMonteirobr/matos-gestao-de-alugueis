@@ -143,7 +143,7 @@ window.resolveAlert=resolveAlert;
 
 function notifStatus(){
  if(!('Notification' in window))return 'Não suportado';
- if(Notification.permission==='granted')return localStorage.getItem('matos_push_token')?'Ativado':'Permissão concedida';
+ if(Notification.permission==='granted')return 'Verificando aparelho...';
  if(Notification.permission==='denied')return 'Bloqueado';
  return 'Não ativado'
 }
@@ -157,7 +157,10 @@ async function activatePushUI(){
   pushMessage('Este aparelho foi registrado para notificações externas.',false);
   var x=E('push_status');if(x)x.textContent=notifStatus();
   refreshMatosPushStatusUI()
- }catch(e){pushMessage(errorText(e),true)}
+ }catch(e){
+  pushMessage(errorText(e),true);
+  refreshMatosPushStatusUI()
+ }
 }
 window.activatePushUI=activatePushUI;
 async function testPushUI(){
@@ -172,8 +175,7 @@ async function testRemotePushUI(){
  pushMessage('Consultando o Firebase...',false);
  try{
   var r=await window.testMatosRemotePush();
-  pushMessage('Firebase aceitou o envio para '+Number(r.accepted_by_firebase||0)+
-   ' aparelho(s). Confira as notificações do celular.',false);
+  pushMessage('Firebase aceitou o envio para este aparelho. Confira se o Android exibiu a notificação; a confirmação de entrega depende do celular.',false);
   refreshMatosPushStatusUI()
  }catch(e){pushMessage(errorText(e),true)}
  finally{if(b)b.disabled=false}
@@ -181,15 +183,27 @@ async function testRemotePushUI(){
 window.testRemotePushUI=testRemotePushUI;
 async function refreshMatosPushStatusUI(){
  var x=E('push_diagnostic'),server=E('push_server_status'),help=E('push_provider_help');
+ var deviceHint=E('push_device_hint');
  if(!server)return;
  try{
   var d=await window.getMatosPushDiagnostics();
-  if(x)x.textContent=d.active?'Registrado ('+d.deviceCount+' aparelhos ativos)':
+  if(x)x.textContent=d.active?'Inscrição detectada neste aparelho':
    d.permission==='denied'?'Notificações bloqueadas':
    d.ios&&!d.installed?'Instale na Tela de Início no iPhone/iPad':
-   d.permission==='granted'?'Ative o registro neste aparelho':'Ainda não ativado';
-  var s=E('push_status');if(s)s.textContent=notifStatus()
- }catch(e){if(x)x.textContent='Registro indisponível'}
+   !d.pushSubscription?'Sem inscrição push ativa no navegador':
+   !d.serverRegistered?'Sem registro válido para este aparelho':'Verificação necessária';
+  var s=E('push_status');
+  if(s)s.textContent=d.active?'Inscrição detectada':
+   d.permission==='denied'?'Bloqueado':
+   d.lastError==='push-service-error'?'Falha no serviço push do Android':
+   d.permission==='granted'?'Registro não confirmado':'Não ativado';
+  if(deviceHint){
+   deviceHint.hidden=d.lastError!=='push-service-error';
+   if(!deviceHint.hidden)deviceHint.textContent=
+    'O último registro falhou no serviço push do Chrome/Android. O Firebase do servidor pode estar conectado mesmo assim. Toque em “Verificar meu celular” para diagnóstico e orientações.'
+  }
+ }catch(e){if(x)x.textContent='Registro indisponível';
+  var s=E('push_status');if(s)s.textContent='Verificação indisponível'}
  if(currentRole==='admin'){
   try{
    var status=await window.getMatosPushServerStatus();
@@ -202,6 +216,24 @@ async function refreshMatosPushStatusUI(){
  }else server.textContent='Disponível ao administrador'
 }
 window.refreshMatosPushStatusUI=refreshMatosPushStatusUI;
+async function diagnosePushUI(){
+ var msg=E('push_msg');if(!msg)return;
+ try{
+  var d=await window.diagnoseMatosPush();
+  var checks=[
+   'Permissão do navegador: '+d.permission,
+   'Internet: '+(d.online?'conectada':'sem conexão'),
+   'Serviço do aplicativo: '+(d.workerActive?'ativo':'não ativo'),
+   'Inscrição push do navegador: '+(d.pushSubscription?'encontrada':'não encontrada'),
+   'Registro neste aparelho: '+(d.serverRegistered?'encontrado':'não encontrado')
+  ];
+  msg.innerHTML='<div class="notice '+(d.active?'success':'err')+'">'+
+   '<strong>Diagnóstico deste aparelho</strong><ul>'+
+   checks.map(function(line){return '<li>'+esc(line)+'</li>'}).join('')+
+   '</ul><p>'+esc(d.advice)+'</p></div>'
+ }catch(e){pushMessage('Não foi possível verificar o celular. '+errorText(e),true)}
+}
+window.diagnosePushUI=diagnosePushUI;
 async function resetPushUI(){
  try{
   await window.resetMatosPush();
@@ -243,11 +275,13 @@ function pushPanel(){
   '<p class="muted">Registro do aparelho: <strong id="push_diagnostic">Verificando...</strong></p>'+
   '<div class="alerts-push-actions">'+
   '<button class="btn primary" type="button" onclick="activatePushUI()">Ativar notificações</button>'+
+  '<button class="btn secondary" type="button" id="push_diagnose" onclick="diagnosePushUI()">Verificar meu celular</button>'+
   '<button class="btn secondary" type="button" onclick="testPushUI()">Testar notificação local</button>'+
   '<button class="btn secondary" type="button" onclick="resetPushUI()">Desativar neste aparelho</button>'+
   '<button class="btn secondary" type="button" onclick="installMatosApp()">Instalar aplicativo</button></div>'+
   '</details>'+
   '<p class="notice err" id="push_provider_help" hidden>A credencial Firebase ainda precisa ser configurada em Supabase → Edge Functions → Secrets.</p>'+
+  '<p class="notice err" id="push_device_hint" hidden></p>'+
   '<div id="push_msg" role="status" aria-live="polite"></div></section>'
 }
 async function alertasPage(){
