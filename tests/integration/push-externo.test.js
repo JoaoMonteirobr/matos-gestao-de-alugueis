@@ -84,7 +84,7 @@ describe('push externo seguro e confiável', () => {
     expect(edge).toContain("body?.action === 'diagnostic'");
     expect(alerts).toContain('testRemotePushUI()');
     expect(alerts).toContain('refreshMatosPushStatusUI()');
-    expect(index).toContain('/pwa.js?v=6');
-    expect(index).toContain('/alerts.js?v=20261119-2');
+    expect(index).toContain('/pwa.js?v=7');
+    expect(index).toContain('/alerts.js?v=20261119-3');
   });
 });
