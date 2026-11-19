@@ -22,7 +22,7 @@ describe('Central de Alertas acessível após sobrescrita do menu', () => {
     expect(client).toContain('window.matosScrollToPush=true;openAlerts()');
     expect(client).toContain("page='Alertas';rememberPage();shell()");
     expect(styles).toContain('.notify-footer');
-    expect(source('alerts.js')).toContain("pushBtn.scrollIntoView({block:'center',behavior:'smooth'})");
+    expect(source('alerts.js')).toContain("target.scrollIntoView({block:'center',behavior:'smooth'})");
   });
 
   test('login fica no histórico, mas não ocupa o badge do sino operacional', () => {
