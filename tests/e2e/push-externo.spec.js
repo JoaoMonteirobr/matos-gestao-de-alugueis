@@ -34,6 +34,7 @@ async function openAdmin(page) {
     localStorage.setItem('matos_push_token', 'token-fcm-de-teste');
   }, USER_ID);
 
+  const readByUser = new Set();
   await page.route('https://behmmbgbrsesxthsczdl.supabase.co/**', async (route) => {
     const url = new URL(route.request().url());
     const respond = (data, status = 200) => route.fulfill({
@@ -51,6 +52,15 @@ async function openAdmin(page) {
     if (url.pathname === '/rest/v1/alertas') {
       if (url.searchParams.get('tipo') === 'neq.login') return respond([OPERATIONAL_ALERT]);
       return respond([LOGIN_ALERT, OPERATIONAL_ALERT]);
+    }
+    if (url.pathname === '/rest/v1/alertas_leituras') {
+      return respond([...readByUser].map((alerta_id) => ({ alerta_id })));
+    }
+    if (url.pathname === '/rest/v1/rpc/marcar_alertas_como_lidos') {
+      const data = route.request().postDataJSON();
+      const ids = data.p_ids || [LOGIN_ALERT.id, OPERATIONAL_ALERT.id];
+      ids.forEach((id) => readByUser.add(id));
+      return respond(ids.length);
     }
     if (url.pathname === '/rest/v1/push_dispositivos') {
       return respond([{ endpoint: 'token-fcm-de-teste', ativo: true }]);
@@ -86,7 +96,14 @@ test('sino: Ver todas abre Alertas e mostra configuração de push', async ({ pa
   await expect(page.locator('#push_test_remote')).toBeVisible();
   await expect(page.locator('#push_server_status')).toHaveText('Firebase conectado');
   await expect(page.locator('.side [data-page="Alertas"]')).toHaveCount(1);
-  await expect(page.locator('#content')).toContainText('Novo acesso ao sistema');
+  await expect(page.locator('#alerts_stat_unread')).toHaveText('2');
+  await expect(page.locator('#alerts_stat_active')).toHaveText('1');
+  await expect(page.locator('#alerts_list')).toContainText('Contrato próximo do vencimento');
+  await expect(page.locator('#alerts_list')).not.toContainText('Novo acesso ao sistema');
+
+  await page.locator('[data-alert-filter="acessos"]').click();
+  await expect(page.locator('#alerts_list')).toContainText('Novo acesso ao sistema');
+  await page.locator('[data-alert-filter="pendencias"]').click();
 
   await page.reload();
   await expect(page.getByRole('heading', { name: 'Alertas', exact: true })).toBeVisible();
@@ -113,5 +130,29 @@ test('atalho do sino permite testar push remoto Firebase no celular e desktop', 
   });
   await page.locator('#push_test_remote').click();
   await expect(page.locator('#push_msg')).toContainText('Firebase aceitou o envio para 1 aparelho');
+  expect(errors).toEqual([]);
+});
+
+test('marcar todas como lidas não resolve contratos e mantém leitura após recarregar', async ({ page }) => {
+  const errors = [];
+  page.on('pageerror', (error) => errors.push(error.message));
+  await openAdmin(page);
+
+  await page.locator('#notify_bell').click();
+  await page.locator('#notify_all').click();
+  await expect(page.locator('#alerts_stat_unread')).toHaveText('2');
+
+  await page.locator('#alerts_mark_all').click();
+  await expect(page.locator('#alerts_stat_unread')).toHaveText('0');
+  await expect(page.locator('#alerts_stat_active')).toHaveText('1');
+  await expect(page.locator('#alerts_msg')).toContainText('As pendências continuam abertas');
+  await expect(page.locator('#alerts_list')).toContainText('Resolver pendência');
+  await expect(page.locator('#notify_count')).toBeHidden();
+
+  await page.locator('[data-alert-filter="nao_lidas"]').click();
+  await expect(page.locator('#alerts_list')).toContainText('Tudo lido');
+  await page.reload();
+  await expect(page.locator('#alerts_stat_unread')).toHaveText('0');
+  await expect(page.locator('#alerts_stat_active')).toHaveText('1');
   expect(errors).toEqual([]);
 });
