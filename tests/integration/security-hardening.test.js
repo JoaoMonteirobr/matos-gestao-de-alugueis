@@ -20,9 +20,13 @@ describe('infrastructure security contracts', () => {
     expect(whatsapp.indexOf('requireAdmin(req)')).toBeLessThan(
       whatsapp.indexOf("Deno.env.get('META_WHATSAPP_TOKEN')"),
     );
-    expect(push.indexOf("req.headers.get('x-push-dispatch-secret')")).toBeLessThan(
-      push.indexOf("Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')"),
+    const dispatch = push.slice(push.indexOf('async function dispatch('));
+    expect(dispatch).toContain("req.headers.get('x-push-dispatch-secret')");
+    expect(dispatch.indexOf('if (supplied.length < 64)')).toBeLessThan(
+      dispatch.indexOf('const db = adminDb()'),
     );
+    expect(dispatch).toContain("db.rpc('validar_chave_dispatch_push'");
+    expect(push).toContain('const auth = await requireAdmin(req)');
     expect(push).toContain("db.rpc('claim_push_fila'");
   });
 
