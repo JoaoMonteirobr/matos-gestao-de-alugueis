@@ -94,44 +94,48 @@ async function sendToFirebase(
   }
 }
 
-async function runDeviceTest(req: Request) {
+async function runDeviceTest(req: Request, deviceToken: unknown) {
   const auth = await requireAdmin(req);
   if ('error' in auth) return json(req, { error: auth.error }, auth.error === 'unauthenticated' ? 401 : 403);
+  // O teste não deve dizer que este celular funciona quando outro aparelho recebe.
+  if (typeof deviceToken !== 'string' || deviceToken.length < 16 || deviceToken.length > 4096) {
+    return json(req, { error: 'invalid_device_token' }, 400);
+  }
   const db = adminDb();
   if (!db) return json(req, { error: 'push_server_not_configured' }, 503);
+  // Segurança: o token solicitado precisa pertencer à conta autenticada.
   const devices = await db.from('push_dispositivos')
     .select('id,endpoint,ultimo_teste_em')
-    .eq('user_id', auth.user.id).eq('ativo', true)
-    .order('ultimo_uso', { ascending: false }).limit(3);
+    .eq('user_id', auth.user.id).eq('endpoint', deviceToken).eq('ativo', true)
+    .limit(1);
   if (devices.error) return json(req, { error: 'device_lookup_failed' }, 503);
-  if (!devices.data?.length) return json(req, { error: 'no_active_devices' }, 409);
+  if (!devices.data?.length) return json(req, { error: 'device_not_registered' }, 409);
 
-  // Rate limit por usuário, persistente entre instâncias da função.
+  const device = devices.data[0];
   const now = Date.now();
-  if (devices.data.some((device) => device.ultimo_teste_em &&
-    now - new Date(device.ultimo_teste_em).getTime() < 60000)) {
+  if (device.ultimo_teste_em && now - new Date(device.ultimo_teste_em).getTime() < 60000) {
     return json(req, { error: 'test_cooldown', retry_after_seconds: 60 }, 429);
   }
   const firebase = await firebaseAuthorization();
   if (!firebase) return json(req, { error: 'firebase_credentials_not_configured' }, 503);
-  let accepted = 0;
-  let failed = 0;
-  for (const device of devices.data) {
-    const result = await sendToFirebase(
-      firebase, device.endpoint,
-      'Teste remoto | Casa Matos',
-      'Esta mensagem foi enviada pelo servidor mesmo sem o sistema estar aberto.',
-      '/?pagina=Alertas', 'matos-push-teste',
-    );
-    await db.from('push_dispositivos').update({
-      ultimo_teste_em: new Date().toISOString(),
-      ...(result.expired ? { ativo: false } : {}),
-    }).eq('id', device.id).eq('user_id', auth.user.id);
-    if (result.ok) accepted++;
-    else failed++;
-  }
-  return json(req, { ok: accepted > 0, accepted_by_firebase: accepted, failed, devices: devices.data.length },
-    accepted ? 200 : 502);
+  const result = await sendToFirebase(
+    firebase, device.endpoint,
+    'Teste remoto | Casa Matos',
+    'Este teste foi enviado exclusivamente para o aparelho atual.',
+    '/?pagina=Alertas', 'matos-push-teste',
+  );
+  await db.from('push_dispositivos').update({
+    ultimo_teste_em: new Date().toISOString(),
+    ...(result.expired ? { ativo: false } : {}),
+  }).eq('id', device.id).eq('user_id', auth.user.id);
+
+  // Aceito pelo Firebase não significa que o Android exibiu a notificação.
+  return json(req, {
+    ok: result.ok,
+    accepted_by_firebase: result.ok ? 1 : 0,
+    failed: result.ok ? 0 : 1,
+    devices: 1,
+  }, result.ok ? 200 : 502);
 }
 
 async function diagnostic(req: Request) {
@@ -212,7 +216,7 @@ Deno.serve(async (req: Request) => {
   if (req.method !== 'POST') return json(req, { error: 'method_not_allowed' }, 405);
   // O teste é uma operação de usuário autenticado; dispatch é reservado ao cron.
   const body = await req.json().catch(() => ({}));
-  if (body?.action === 'test') return runDeviceTest(req);
+  if (body?.action === 'test') return runDeviceTest(req, body?.device_token);
   if (body?.action === 'diagnostic') return diagnostic(req);
   return dispatch(req, body?.action);
 });
