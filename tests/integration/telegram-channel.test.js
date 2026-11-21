@@ -62,7 +62,7 @@ describe('Telegram opcional como canal externo de alertas', () => {
     expect(functionCode).toContain("action === 'test'");
     expect(functionCode).toContain("action === 'enable' || action === 'disable'");
     expect(functionCode).toContain("'test_required'");
-    expect(functionCode).toContain('last_test');
+    expect(functionCode).toContain('ultimo_teste_em');
     expect(functionCode).toContain('test_cooldown');
     expect(functionCode).toContain("action === 'disconnect'");
     expect(client).toContain('Recebi o teste — ativar avisos');
