@@ -100,7 +100,11 @@ function exportPdf(model){
    var x=margin+i*(width+gap);
    doc.setFillColor(244,247,250);doc.roundedRect(x,39,width,22,2,2,'F');
    text(s[0],x+4,46,8,mute,true);
-   text(fitCell(moneyPdf(s[1]),width-8,13,true),x+4,56,13,i===2?red:navy,true)
+   var amount=moneyPdf(s[1]),size=13;
+   doc.setFont('helvetica','bold');doc.setFontSize(size);
+   while(size>8&&doc.getTextWidth(amount)>width-8){size=Math.max(8,size-.5);doc.setFontSize(size)}
+   if(doc.getTextWidth(amount)>width-8)throw new Error('Valor anual extenso demais para o resumo do IPTU.');
+   text(amount,x+4,56,size,i===2?red:navy,true)
   });
   text('Quitados: '+model.count.quitado+'  |  Parciais: '+model.count.parcial+'  |  Pendentes: '+model.count.pendente+'  |  A conferir: '+model.count.conferir,
    margin,68,9,mute,false);
@@ -116,8 +120,13 @@ function exportPdf(model){
   return candidate?candidate+'...':'...'
  }
  function rightCell(value,right,y,size,color,bold,width){
-  var fitted=fitCell(value,width,size,bold);
-  text(fitted,right-doc.getTextWidth(fitted),y,size,color,bold)
+  var full=pdfText(value),selected=size;
+  doc.setFont('helvetica',bold?'bold':'normal');doc.setFontSize(selected);
+  while(selected>6&&doc.getTextWidth(full)>width){
+   selected=Math.max(6,selected-.3);doc.setFontSize(selected)
+  }
+  if(doc.getTextWidth(full)>width)throw new Error('Valor financeiro extenso demais para a coluna do IPTU.');
+  text(full,right-doc.getTextWidth(full),y,selected,color,bold)
  }
  function tableHeader(y){
   doc.setFillColor(235,240,246);doc.rect(margin,y,inner,9,'F');
