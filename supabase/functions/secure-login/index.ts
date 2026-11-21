@@ -185,13 +185,15 @@ Deno.serve(async (req: Request) => {
   }
 
   await db.from('login_tentativas').delete().eq('chave', accountIpKey);
-  await db.from('login_auditoria').insert({
+  // Guardar o ID de auditoria permite associar este login específico ao alerta
+  // enviado pelo Telegram sem incluir o IP ou o user-agent bruto no alerta.
+  const auditInsert = await db.from('login_auditoria').insert({
     user_id: authResult.data.user.id,
     email: auditIdentity,
     sucesso: true,
     ip: ip === 'unknown' ? null : ip,
     user_agent: userAgent,
-  });
+  }).select('id').maybeSingle();
 
   const profile = await db
     .from('perfis')
@@ -209,7 +211,8 @@ Deno.serve(async (req: Request) => {
       mensagem: `${who} entrou no sistema em ${loginTime}. Dispositivo: ${device}.`,
       prioridade: 'media',
       data_evento: new Date().toISOString().slice(0, 10),
-      referencia_key: `login:${authResult.data.user.id}:${Date.now()}`,
+      referencia_key: auditInsert.data?.id ? `login_audit:${auditInsert.data.id}` :
+        `login:${authResult.data.user.id}:${Date.now()}`,
       resolvido: false,
     });
 
