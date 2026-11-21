@@ -114,7 +114,7 @@ describe('relatório de situação do IPTU', () => {
   });
 
   it('carrega o módulo e o CSS após o cálculo do IPTU', () => {
-    expect(html.indexOf('/iptu-situation-report.js?v=1')).toBeGreaterThan(html.indexOf('/iptu-annual.js?v=3'));
+    expect(html.indexOf('/iptu-situation-report.js?v=2')).toBeGreaterThan(html.indexOf('/iptu-annual.js?v=3'));
     expect(html).toContain('/iptu-situation-report.css?v=1');
   });
 });
