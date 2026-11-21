@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "lint": "biome lint --max-diagnostics=100 observability.js sw.js scripts tests supabase/functions vitest.config.js playwright.config.js stryker.config.mjs commitlint.config.mjs",
+    "lint": "biome lint observability.js sw.js scripts tests supabase/functions vitest.config.js playwright.config.js stryker.config.mjs commitlint.config.mjs",
     "format": "biome format --write observability.js sw.js scripts tests supabase/functions vitest.config.js playwright.config.js stryker.config.mjs commitlint.config.mjs",
     "arch:check": "node scripts/check-architecture.mjs",
     "test": "vitest run",
