@@ -15,7 +15,7 @@ describe('comprovantes nos pagamentos e PDF mensal', () => {
   }
 
   it('carrega exportador e usa o bucket privado autenticado', () => {
-    expect(index).toContain('/monthly-report-pdf.js?v=3');
+    expect(index).toContain('/monthly-report-pdf.js?v=4');
     expect(report).toContain('/storage/v1/object/authenticated/comprovantes/');
     expect(report).not.toContain('/object/public/comprovantes/');
     expect(report).toContain('Authorization:');
