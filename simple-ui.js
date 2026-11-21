@@ -322,18 +322,130 @@ function openPropertyRegistration(existingTenants,presetTenantId){
 // =====================================================
 // Lista contratos e destaca os que vencem em até 60 dias.
 async function contractsPage(){
- await Promise.all([dbGet('contratos'),dbGet('imoveis'),dbGet('inquilinos')]);var cs=cache.contratos||[],ims=cache.imoveis||[],inqs=cache.inquilinos||[];
- var rows=cs.map(function(c){var im=ims.find(function(x){return x.id===c.imovel_id}),t=inqs.find(function(x){return x.id===c.inquilino_id}),d=daysUntil(c.data_fim),badge=d<0?'<span class="badge red">Vencido</span>':d<=60?'<span class="badge yellow">'+d+' dias</span>':st(c.status);return '<tr><td><b>'+esc(im&&im.nome||'—')+'</b></td><td>'+esc(t&&t.nome||'—')+'</td><td>'+dateBR(c.data_inicio)+'</td><td>'+dateBR(c.data_fim)+'</td><td>'+money(c.aluguel_atual)+'</td><td>'+badge+'</td></tr>'}).join('');
- E('content').innerHTML='<div class="simple-toolbar"><div><h2>Contratos</h2><p>Cadastre e acompanhe os prazos dos contratos vinculados aos imóveis.</p></div>'+(currentRole==='admin'?'<button id="newContract" class="btn primary">+ Novo contrato</button>':'<span class="notice access-readonly">Somente consulta</span>')+'</div><div class="notice contract-notice">O sistema gera aviso automático quando faltarem <b>60 dias</b> para o término de um contrato ativo.</div><div class="panel simple-panel"><div class="tablewrap"><table class="table"><thead><tr><th>Imóvel</th><th>Inquilino</th><th>Início</th><th>Término</th><th>Aluguel</th><th>Situação / prazo</th></tr></thead><tbody>'+(rows||'<tr><td colspan="6" class="empty">Nenhum contrato cadastrado.</td></tr>')+'</tbody></table></div></div>';
- if(E('newContract'))E('newContract').onclick=function(){openContractRegistration(ims,inqs)}
+ await Promise.all([dbGet('contratos'),dbGet('imoveis'),dbGet('inquilinos')]);
+ var cs=cache.contratos||[],ims=cache.imoveis||[],inqs=cache.inquilinos||[];
+ var admin=currentRole==='admin',api=window.MatosContractFiles;
+ var docs=api?await api.list():[],docsByContract={};
+ docs.forEach(function(d){if(!docsByContract[d.contrato_id])docsByContract[d.contrato_id]=[];docsByContract[d.contrato_id].push(d)});
+ var rows=cs.map(function(c){
+  var im=ims.find(function(x){return x.id===c.imovel_id}),t=inqs.find(function(x){return x.id===c.inquilino_id});
+  var d=daysUntil(c.data_fim),badge=d<0?'<span class="badge red">Vencido</span>':
+   d<=60?'<span class="badge yellow">'+d+' dias</span>':st(c.status);
+  var files=docsByContract[c.id]||[];
+  var documentCell='<div class="contract-pdf-files">'+(files.length?files.map(function(info){
+   return '<div class="contract-pdf-file"><button type="button" class="linkmini" data-contract-view="'+esc(info.id)+'">Ver PDF</button>'+
+    '<span class="contract-pdf-filename" title="'+esc(info.arquivo_nome||'Contrato.pdf')+'">'+
+    esc(info.arquivo_nome||'Contrato.pdf')+'</span>'+
+    (admin?'<button type="button" class="contract-pdf-remove" data-contract-remove="'+esc(info.id)+'" aria-label="Remover PDF '+esc(info.arquivo_nome||'')+'">Remover</button>':'')+'</div>'
+  }).join(''):'<span class="muted">Sem PDF anexado</span>')+'</div>';
+  if(admin)documentCell+='<button class="btn secondary contract-pdf-attach" data-contract-attach="'+esc(c.id)+'" type="button">'+
+   (files.length?'Adicionar outro PDF':'Anexar PDF')+'</button>'+
+   '<input data-contract-file="'+esc(c.id)+'" type="file" accept=".pdf,application/pdf" hidden aria-label="Selecionar PDF do contrato">';
+  var actions=admin?'<td><div class="rowactions contract-row-actions">'+
+   '<button type="button" data-contract-edit="'+esc(c.id)+'">Editar</button>'+
+   '<button type="button" data-contract-delete="'+esc(c.id)+'">Excluir</button></div></td>':'';
+  return '<tr><td><b>'+esc(im&&im.nome||'—')+'</b></td><td>'+esc(t&&t.nome||'—')+
+   '</td><td>'+dateBR(c.data_inicio)+'</td><td>'+dateBR(c.data_fim)+'</td><td>'+money(c.aluguel_atual)+
+   '</td><td>'+badge+'</td><td class="contract-doc-cell">'+documentCell+'</td>'+actions+'</tr>'
+ }).join('');
+ var C=E('content');
+ C.innerHTML='<div class="simple-toolbar"><div><h2>Contratos</h2>'+
+  '<p>Consulte, corrija e organize contratos assinados e prazos.</p></div>'+
+  (admin?'<button id="newContract" class="btn primary">+ Novo contrato</button>':
+   '<span class="notice access-readonly">Somente consulta</span>')+'</div>'+
+  '<div class="notice contract-notice">O sistema gera aviso automático quando faltarem <b>60 dias</b> para o término de um contrato ativo.</div>'+
+  '<p id="contract-doc-status" class="contract-doc-status" role="status" aria-live="polite"></p>'+
+  '<div class="panel simple-panel"><div class="tablewrap"><table class="table contracts-table">'+
+  '<thead><tr><th>Imóvel</th><th>Inquilino</th><th>Início</th><th>Término</th>'+
+  '<th>Aluguel</th><th>Situação / prazo</th><th>Contrato em PDF</th>'+
+  (admin?'<th>Ações</th>':'')+'</tr></thead><tbody>'+
+  (rows||'<tr><td colspan="'+(admin?8:7)+'" class="empty">Nenhum contrato cadastrado.</td></tr>')+
+  '</tbody></table></div></div>';
+ function notice(message,error){
+  var node=E('contract-doc-status');
+  if(node){node.className='contract-doc-status notice '+(error?'err':'success');node.textContent=message}
+ }
+ async function refresh(message,error){await load();if(message)notice(message,error)}
+ if(E('newContract'))E('newContract').onclick=function(){openContractRegistration(ims,inqs)};
+ Array.prototype.forEach.call(C.querySelectorAll('[data-contract-view]'),function(button){
+  button.onclick=function(){
+   var info=docs.find(function(x){return x.id===button.dataset.contractView});
+   if(info)api.open(info).catch(function(err){notice(err.message,true)})
+  }
+ });
+ if(!admin)return;
+ Array.prototype.forEach.call(C.querySelectorAll('[data-contract-attach]'),function(button){
+  button.onclick=function(){
+   var input=C.querySelector('[data-contract-file="'+button.dataset.contractAttach+'"]');
+   if(input)input.click()
+  }
+ });
+ Array.prototype.forEach.call(C.querySelectorAll('[data-contract-file]'),function(input){
+  input.onchange=async function(){
+   var file=input.files&&input.files[0],contract=cs.find(function(x){return x.id===input.dataset.contractFile});
+   if(!file||!contract)return;
+   input.disabled=true;notice('Enviando o PDF para o armazenamento privado...',false);
+   try{await api.upload(contract,file);await refresh('PDF anexado com segurança.',false)}
+   catch(err){notice('Falha ao anexar o PDF: '+err.message,true)}
+   finally{input.disabled=false;input.value=''}
+  }
+ });
+ Array.prototype.forEach.call(C.querySelectorAll('[data-contract-remove]'),function(button){
+  button.onclick=async function(){
+   var info=docs.find(function(x){return x.id===button.dataset.contractRemove});
+   if(!info)return;
+   button.disabled=true;
+   try{
+    var result=await api.remove(info);
+    if(result&&result.removed)await refresh(result.cleaned?'PDF removido.':'Vínculo do PDF removido; arquivo privado pendente de limpeza.',!result.cleaned)
+   }catch(err){notice('Não foi possível remover o PDF: '+err.message,true)}
+   finally{button.disabled=false}
+  }
+ });
+ Array.prototype.forEach.call(C.querySelectorAll('[data-contract-edit]'),function(button){
+  button.onclick=function(){
+   var contract=cs.find(function(x){return x.id===button.dataset.contractEdit});
+   if(contract)openForm('Contratos',contract)
+  }
+ });
+ Array.prototype.forEach.call(C.querySelectorAll('[data-contract-delete]'),function(button){
+  button.onclick=async function(){
+   var contract=cs.find(function(x){return x.id===button.dataset.contractDelete});
+   if(!contract)return;
+   var im=ims.find(function(x){return x.id===contract.imovel_id});
+   var t=inqs.find(function(x){return x.id===contract.inquilino_id});
+   var label=(im&&im.nome||'Imóvel')+' — '+(t&&t.nome||'Inquilino');
+   if(!confirm('Excluir DEFINITIVAMENTE o cadastro de contrato de '+label+'?\n\nA exclusão só será permitida se não houver cobranças, lançamentos financeiros, vistorias ou documentos vinculados.\n\nEsta ação não pode ser desfeita.'))return;
+   button.disabled=true;
+   try{await api.deleteContract(contract.id);cache.contratos=null;await refresh('Contrato excluído. Cobranças e histórico financeiro preservados.',false)}
+   catch(err){notice('Exclusão bloqueada: '+err.message,true)}
+   finally{button.disabled=false}
+  }
+ })
 }
 // Cria um contrato usando o imóvel ocupado e seu inquilino já vinculado.
 function openContractRegistration(ims,inqs){
  var occupied=ims.filter(function(x){return x.inquilino_id});
- document.body.insertAdjacentHTML('beforeend','<div class="modalbg" id="modal"><div class="modal simple-modal"><div class="modalhead"><div><h2>Novo contrato</h2><small>Vincule o contrato a um imóvel ocupado</small></div><button id="closemodal" class="close">×</button></div><div class="modalbody"><div id="formmsg"></div><div class="formgrid"><div class="field full"><span class="lbl">Imóvel *</span><select id="ct_property" class="inp"><option value="">Selecione</option>'+occupied.map(function(im){return '<option value="'+im.id+'">'+esc(im.nome||im.endereco)+'</option>'}).join('')+'</select></div><div class="field full"><span class="lbl">Inquilino</span><input id="ct_tenant" class="inp" disabled placeholder="Selecionado pelo imóvel"></div><div class="field"><span class="lbl">Início do contrato *</span><input id="ct_start" class="inp" type="date"></div><div class="field"><span class="lbl">Término do contrato *</span><input id="ct_end" class="inp" type="date"></div><div class="field"><span class="lbl">Dia do vencimento *</span><input id="ct_due" class="inp" type="number" min="1" max="28" value="10"></div><div class="field"><span class="lbl">Valor do aluguel *</span><input id="ct_rent" class="inp" type="number" min="0" step="0.01"></div></div></div><div class="modalfoot"><button id="cancelmodal" class="btn secondary">Cancelar</button><button id="saveContract" class="btn primary">Salvar contrato</button></div></div></div>');
+ document.body.insertAdjacentHTML('beforeend','<div class="modalbg" id="modal"><div class="modal simple-modal"><div class="modalhead"><div><h2>Novo contrato</h2><small>Vincule o contrato a um imóvel ocupado</small></div><button id="closemodal" class="close">×</button></div><div class="modalbody"><div id="formmsg"></div><div class="formgrid"><div class="field full"><span class="lbl">Imóvel *</span><select id="ct_property" class="inp"><option value="">Selecione</option>'+occupied.map(function(im){return '<option value="'+im.id+'">'+esc(im.nome||im.endereco)+'</option>'}).join('')+'</select></div><div class="field full"><span class="lbl">Inquilino</span><input id="ct_tenant" class="inp" disabled placeholder="Selecionado pelo imóvel"></div><div class="field"><span class="lbl">Início do contrato *</span><input id="ct_start" class="inp" type="date"></div><div class="field"><span class="lbl">Término do contrato *</span><input id="ct_end" class="inp" type="date"></div><div class="field"><span class="lbl">Dia do vencimento *</span><input id="ct_due" class="inp" type="number" min="1" max="28" value="10"></div><div class="field"><span class="lbl">Valor do aluguel *</span><input id="ct_rent" class="inp" type="number" min="0" step="0.01"></div><div class="field full"><span class="lbl">Contrato assinado em PDF (opcional)</span><input id="ct_pdf" class="inp" type="file" accept=".pdf,application/pdf"><small>Arquivo privado, máximo 15 MB. Pode ser anexado posteriormente.</small></div></div></div><div class="modalfoot"><button id="cancelmodal" class="btn secondary">Cancelar</button><button id="saveContract" class="btn primary">Salvar contrato</button></div></div></div>');
  function close(){E('modal').remove()}E('closemodal').onclick=E('cancelmodal').onclick=close;
  E('ct_property').onchange=function(){var im=ims.find(function(x){return x.id===E('ct_property').value}),t=im&&inqs.find(function(x){return x.id===im.inquilino_id});E('ct_tenant').value=t&&t.nome||'';E('ct_rent').value=im&&im.aluguel_base||''};
- E('saveContract').onclick=async function(){var msg=E('formmsg'),im=ims.find(function(x){return x.id===E('ct_property').value}),start=E('ct_start').value,end=E('ct_end').value,rent=Number(E('ct_rent').value||0),due=Number(E('ct_due').value||0);if(!im||!im.inquilino_id||!start||!end||rent<=0||due<1||due>28){msg.innerHTML='<div class="notice err">Preencha imóvel, datas, vencimento e valor do aluguel.</div>';return}if(end<=start){msg.innerHTML='<div class="notice err">A data de término deve ser posterior à data de início.</div>';return}try{msg.innerHTML='<div class="notice">Salvando contrato...</div>';await dbInsert('contratos',{imovel_id:im.id,inquilino_id:im.inquilino_id,data_inicio:start,data_fim:end,dia_vencimento:due,aluguel_atual:rent,status:start>new Date().toISOString().slice(0,10)?'futuro':'ativo'});cache.contratos=null;close();contractsPage()}catch(e){msg.innerHTML='<div class="notice err">'+esc(e.message)+'</div>'}}
+ E('saveContract').onclick=async function(){var msg=E('formmsg'),im=ims.find(function(x){return x.id===E('ct_property').value}),start=E('ct_start').value,end=E('ct_end').value,rent=Number(E('ct_rent').value||0),due=Number(E('ct_due').value||0);if(!im||!im.inquilino_id||!start||!end||rent<=0||due<1||due>28){msg.innerHTML='<div class="notice err">Preencha imóvel, datas, vencimento e valor do aluguel.</div>';return}if(end<=start){msg.innerHTML='<div class="notice err">A data de término deve ser posterior à data de início.</div>';return}var pdf=E('ct_pdf')&&E('ct_pdf').files&&E('ct_pdf').files[0],api=window.MatosContractFiles;
+ try{
+  if(pdf){if(!api)throw new Error('Módulo de contratos em PDF indisponível.');await api.validatePdf(pdf)}
+  var saveButton=E('saveContract');if(saveButton)saveButton.disabled=true;
+  msg.innerHTML='<div class="notice">Salvando contrato...</div>';
+  var result=await dbInsert('contratos',{imovel_id:im.id,inquilino_id:im.inquilino_id,data_inicio:start,data_fim:end,dia_vencimento:due,aluguel_atual:rent,status:start>new Date().toISOString().slice(0,10)?'futuro':'ativo'});
+  var saved=Array.isArray(result)&&result[0];
+  if(!saved||!saved.id)throw new Error('O sistema não confirmou o contrato criado. Atualize a lista antes de cadastrar novamente.');
+  var failedPdf='';
+  if(pdf){
+   try{msg.innerHTML='<div class="notice">Contrato salvo. Anexando PDF...</div>';await api.upload(saved,pdf)}
+   catch(error){failedPdf=error.message}
+  }
+  cache.contratos=null;close();await load();
+  var status=E('contract-doc-status');
+  if(status){status.className='contract-doc-status notice '+(failedPdf?'err':'success');status.textContent=failedPdf?'Contrato cadastrado, mas o PDF falhou: '+failedPdf+'. Anexe pela coluna de documentos.':'Contrato cadastrado'+(pdf?' com PDF privado.':'.')}
+ }catch(e){msg.innerHTML='<div class="notice err">'+esc(e.message)+'</div>';var btn=E('saveContract');if(btn)btn.disabled=false}}
 }
 // IPTU tem competência ANUAL. Os valores pagos não são somados à receita
 // mensal de aluguel; cada perfil vê apenas os registros permitidos pelo RLS.
@@ -468,6 +580,7 @@ async function renderSettingsSection(){
  C.innerHTML='<div class="panel">Carregando '+esc(section)+'...</div>';
  try{
   if(section==='Acessos')await accesses();
+  else if(section==='Contratos')await contractsPage();
   else await modulePage();
   if(settingsActive!==section||page!==section||ticket!==settingsRenderId||E('content')!==C)return;
   var toolbar=document.createElement('div');

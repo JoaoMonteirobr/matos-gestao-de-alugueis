@@ -284,3 +284,27 @@
  .matos-monthly-report .report-table thead{display:table-header-group}
  .matos-monthly-report .report-table tr{break-inside:avoid;page-break-inside:avoid}
 }
+
+/* Contratos: anexo PDF privado e ações claras sem comprimir datas/valores. */
+.contracts-table{min-width:980px}
+.contracts-table th,.contracts-table td{vertical-align:middle}
+.contracts-table th:nth-child(5),.contracts-table td:nth-child(5){text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.contracts-table .contract-doc-cell{min-width:215px;max-width:320px}
+.contract-pdf-files{display:flex;flex-direction:column;gap:7px;margin-bottom:8px}
+.contract-pdf-file{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.contract-pdf-file .linkmini{flex:none;white-space:nowrap}
+.contract-pdf-filename{display:inline-block;min-width:0;max-width:175px;font-size:11px;color:#597089;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.contract-pdf-remove{font-size:11px;color:#a2363e;background:transparent;border:0;cursor:pointer;padding:3px}
+.contract-pdf-remove:hover{text-decoration:underline}
+.contract-pdf-attach{min-height:34px;padding:7px 11px!important;font-size:11px!important}
+.contract-row-actions{display:flex;align-items:center;gap:7px;flex-wrap:wrap;min-width:132px}
+.contract-row-actions [data-contract-delete]{color:#a2363e;border-color:#e5b0b5}
+.contract-doc-status:not(:empty){margin:0 0 12px;line-height:1.5}
+@media(max-width:680px){
+ .contracts-table{min-width:895px}
+ .contracts-table th,.contracts-table td{padding:10px 8px}
+ .contracts-table .contract-doc-cell{min-width:190px;max-width:235px}
+ .contract-pdf-filename{max-width:138px}
+ .contract-row-actions{flex-direction:column;align-items:stretch;min-width:80px}
+ .contract-row-actions button{min-height:36px}
+}

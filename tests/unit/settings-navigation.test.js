@@ -21,6 +21,15 @@ function sandbox(role = 'admin') {
     tenantMenus: [],
     consultaMenus: [],
     isMatosSectionPaused: (name) => ['Repasses', 'Documentos', 'Vistorias'].includes(name),
+    dbGet: async (table) => {
+      if (table === 'contratos') counts.pages.push(ctx.page);
+      ctx.cache[table] = [];
+      return [];
+    },
+    daysUntil: () => 90,
+    st: () => 'Ativo',
+    money: () => 'R$ 0,00',
+    dateBR: () => '01/01/2026',
     navIcon: () => '•',
     E: (id) => dom.window.document.getElementById(id),
     esc: (value) => String(value ?? '').replaceAll('&', '&amp;').replaceAll('<', '&lt;'),
@@ -95,11 +104,20 @@ describe('Configurações: cinco cadastros funcionais', () => {
       await ctx.MatosSettings.open(section);
       expect(counts.pages.at(-1)).toBe(section);
       expect(ctx.E('backSettings')).not.toBeNull();
-      ctx.E('newrec').click();
-      expect(counts.create).toBe(1);
-      await ctx.load();
-      ctx.E('newrec').click();
-      expect(counts.create).toBe(2);
+      if (section === 'Contratos') {
+        expect(ctx.E('newContract')).not.toBeNull();
+        ctx.E('newContract').click();
+        expect(ctx.E('ct_pdf')).not.toBeNull();
+        ctx.E('cancelmodal').click();
+        await ctx.load();
+        expect(ctx.E('newContract')).not.toBeNull();
+      } else {
+        ctx.E('newrec').click();
+        expect(counts.create).toBe(1);
+        await ctx.load();
+        ctx.E('newrec').click();
+        expect(counts.create).toBe(2);
+      }
     },
   );
 
@@ -137,7 +155,7 @@ describe('Configurações: cinco cadastros funcionais', () => {
     expect(enhancements).toContain('if(current&&vals.indexOf(current)<0)vals.push(current)');
     expect(app2).toContain("'Imóveis':'imóvel'");
     expect(app2).toContain("'Contratos':'contrato'");
-    expect(html).toContain('/simple-ui.js?v=20');
+    expect(html).toContain('/simple-ui.js?v=21');
     expect(html).toContain('/app2.js?v=20261113-3');
     expect(html).toContain('/enhancements.js?v=20261108-2');
   });
