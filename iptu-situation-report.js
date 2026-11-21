@@ -100,15 +100,34 @@ function exportPdf(model){
    var x=margin+i*(width+gap);
    doc.setFillColor(244,247,250);doc.roundedRect(x,39,width,22,2,2,'F');
    text(s[0],x+4,46,8,mute,true);
-   text(moneyPdf(s[1]),x+4,56,13,i===2?red:navy,true)
+   text(fitCell(moneyPdf(s[1]),width-8,13,true),x+4,56,13,i===2?red:navy,true)
   });
   text('Quitados: '+model.count.quitado+'  |  Parciais: '+model.count.parcial+'  |  Pendentes: '+model.count.pendente+'  |  A conferir: '+model.count.conferir,
    margin,68,9,mute,false);
   if(model.count.conferir)text('Atenção: registros a conferir não compõem o saldo confirmado; valide as parcelas já pagas.',margin,75,8,red,false)
  }
+ // Largura medida com a mesma fonte/tamanho da renderização, evitando
+ // transbordamentos. Cabeçalho e valor financeiro usam o mesmo limite direito.
+ function fitCell(value,width,size,bold){
+  var candidate=pdfText(value);
+  doc.setFont('helvetica',bold?'bold':'normal');doc.setFontSize(size);
+  if(doc.getTextWidth(candidate)<=width)return candidate;
+  while(candidate&&doc.getTextWidth(candidate+'...')>width)candidate=candidate.slice(0,-1);
+  return candidate?candidate+'...':'...'
+ }
+ function rightCell(value,right,y,size,color,bold,width){
+  var fitted=fitCell(value,width,size,bold);
+  text(fitted,right-doc.getTextWidth(fitted),y,size,color,bold)
+ }
  function tableHeader(y){
   doc.setFillColor(235,240,246);doc.rect(margin,y,inner,9,'F');
-  var x=margin;titles.forEach(function(t,i){text(t,x+2,y+6,7.3,navy,true);x+=widths[i]});
+  var x=margin;
+  titles.forEach(function(t,i){
+   if(i>=3)rightCell(t,x+widths[i]-2,y+6,7.3,navy,true,widths[i]-4);
+   else text(fitCell(t,widths[i]-4,7.3,true),x+2,y+6,7.3,navy,true);
+   if(i>0){doc.setDrawColor(217,225,234);doc.line(x,y+1,x,y+8)}
+   x+=widths[i]
+  })
  }
  function row(item,y,index){
   if(index%2===0){doc.setFillColor(250,251,253);doc.rect(margin,y,inner,14,'F')}
@@ -116,10 +135,17 @@ function exportPdf(model){
   var col=[item.imovel,item.label,parcelas(item),moneyPdf(d.total),moneyPdf(d.received),last];
   var x=margin;
   for(var k=0;k<col.length;k++){
-   var w=widths[k],size=k<3?8:8.3,content=pdfText(col[k]),lines=doc.splitTextToSize(content,w-4).slice(0,2);
-   if(lines.length>1&&lines[1].length>0&&doc.getTextWidth(lines[1])>w-4)lines[1]=lines[1].slice(0,23);
-   for(var j=0;j<lines.length;j++)text(lines[j],x+2,y+5+j*4.2,size,
-    k===5&&item.kind!=='quitado'?red:k===1&&item.kind==='quitado'?green:navy,k===1||k===5);
+   var w=widths[k],size=k<3?8:8.3,bold=k===1||k===5,ink=k===5&&item.kind!=='quitado'?red:k===1&&item.kind==='quitado'?green:navy;
+   if(k>=3)rightCell(col[k],x+w-2,y+7.7,size,ink,bold,w-4);
+   else{
+    doc.setFont('helvetica',bold?'bold':'normal');doc.setFontSize(size);
+    var all=doc.splitTextToSize(pdfText(col[k]),w-4),lines=all.slice(0,2);
+    if(all.length>2&&lines.length>1)lines[1]=fitCell(lines[1]+'...',w-4,size,bold);
+    for(var j=0;j<lines.length;j++){
+     text(fitCell(lines[j],w-4,size,bold),x+2,y+5+j*4.2,size,ink,bold)
+    }
+   }
+   if(k>0){doc.setDrawColor(232,236,241);doc.line(x,y+1,x,y+13)}
    x+=w
   }
   doc.setDrawColor(230,235,240);doc.line(margin,y+14,margin+inner,y+14)
