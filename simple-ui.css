@@ -252,3 +252,35 @@
 #f_parcelas_pagas,#f_numero_parcelas{font-variant-numeric:tabular-nums}
 #f_valor_total[readonly]{background:#f3f8f6;color:#2e594d;cursor:default}
 @media(max-width:600px){.iptu-installment-preview,.iptu-review-note,.iptu-received-partial{font-size:11px;padding:10px}}
+
+/* Alinha colunas de valores do demonstrativo na tela e no PDF impresso. */
+.matos-monthly-report .report-table th:nth-child(4),
+.matos-monthly-report .report-table td:nth-child(4),
+.matos-monthly-report .report-table th:nth-child(5),
+.matos-monthly-report .report-table td:nth-child(5){
+ text-align:right;font-variant-numeric:tabular-nums
+}
+@media print{
+ .matos-monthly-report .tablewrap,#printArea .tablewrap{
+  overflow:visible!important;max-height:none!important;border:0!important
+ }
+ .matos-monthly-report .report-table{
+  width:100%!important;min-width:0!important;table-layout:fixed;
+  border-collapse:collapse;font-size:8.2pt!important
+ }
+ .matos-monthly-report .report-table th,
+ .matos-monthly-report .report-table td{
+  overflow-wrap:anywhere;word-break:normal;white-space:normal!important;
+  vertical-align:top;padding:4px 5px!important
+ }
+ .matos-monthly-report .report-table th:nth-child(1){width:18%}
+ .matos-monthly-report .report-table th:nth-child(2){width:17%}
+ .matos-monthly-report .report-table th:nth-child(3){width:11%}
+ .matos-monthly-report .report-table th:nth-child(4){width:11%}
+ .matos-monthly-report .report-table th:nth-child(5){width:11%}
+ .matos-monthly-report .report-table th:nth-child(6){width:10%}
+ .matos-monthly-report .report-table th:nth-child(7){width:10%}
+ .matos-monthly-report .report-table th:nth-child(8){width:12%}
+ .matos-monthly-report .report-table thead{display:table-header-group}
+ .matos-monthly-report .report-table tr{break-inside:avoid;page-break-inside:avoid}
+}
