@@ -61,7 +61,7 @@ describe('documentos de contratos e exclusão segura',()=>{
   expect(source).toContain("var BUCKET='documentos-imoveis'");
   expect(source).toContain("currentRole!=='admin'");
   expect(source).toContain("categoria:'Contrato',contrato_id:contract.id");
-  expect(source).toContain('arquivo_tipo:\\'application/pdf\\'');
+  expect(source).toContain("arquivo_tipo:'application/pdf'");
   expect(source).not.toContain('/object/public/');
   expect(source).not.toContain('service_role');
   expect(html).toContain('/contract-pdfs.js?v=1');
