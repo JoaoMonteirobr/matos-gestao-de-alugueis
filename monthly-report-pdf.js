@@ -241,8 +241,12 @@ async function exportReport(k,rows,progress,options){
  // Use o MESMO eixo da direita para cabeçalhos e valores financeiros.
  // Isso evita a aparência de valores deslocados para outra coluna.
  function rightCell(value,x,width,yy,size,font,color){
-  var face=font||normal,v=fit(value,face,size,width-10);
-  text(v,x+width-5-face.widthOfTextAtSize(v,size),yy,size,face,color||pal.ink)
+  var face=font||normal,v=readable(value),sizeToDraw=size;
+  while(sizeToDraw>5.75&&face.widthOfTextAtSize(v,sizeToDraw)>width-10)sizeToDraw-=.25;
+  if(face.widthOfTextAtSize(v,sizeToDraw)>width-10){
+   throw new Error('Um valor ultrapassou a largura da coluna do relatório. Confira o lançamento.')
+  }
+  text(v,x+width-5-face.widthOfTextAtSize(v,sizeToDraw),yy,sizeToDraw,face,color||pal.ink)
  }
  function tableHeading(){
   var x=margin;
