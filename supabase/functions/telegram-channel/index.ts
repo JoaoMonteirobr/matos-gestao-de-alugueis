@@ -88,6 +88,101 @@ function category(kind: unknown) {
   return typeof kind === 'string' ? labels[kind] || 'Pendência de gestão' : 'Pendência de gestão';
 }
 
+// Cidade/estado/país aproximados pela rede; não é localização GPS.
+// Usa apenas IP do registro de auditoria quando alertas de acesso estão
+// habilitados. O endereço completo nunca integra o texto do Telegram.
+function safeText(value: unknown, limit=100) {
+  return typeof value === 'string' ? value.replace(/[\u0000-\u001F\u007F]/g,' ').trim().slice(0,limit) : '';
+}
+function remoteIp(ip: unknown) {
+  const input=safeText(ip,45);
+  if(!input || !/^[0-9a-fA-F:.]{3,45}$/.test(input))return null;
+  if(input.includes(':')){
+    if(input.toLowerCase().startsWith('fe80:')||input==='::1'||input.toLowerCase().startsWith('fc')||
+       input.toLowerCase().startsWith('fd'))return null;
+    return input;
+  }
+  const parts=input.split('.');
+  if(parts.length!==4||parts.some(x=>!/^\d{1,3}$/.test(x)||Number(x)>255))return null;
+  const [a,b]=parts.map(Number);
+  if(a===0||a===10||a===127||a>=224||
+    (a===172&&b>=16&&b<=31)||(a===192&&b===168)||
+    (a===169&&b===254)||(a===100&&b>=64&&b<=127))return null;
+  return input;
+}
+async function approximateLocation(ip: unknown) {
+  const publicIp=remoteIp(ip);
+  if(!publicIp)return 'Não identificada';
+  try{
+    const response=await fetch('https://ipwho.is/'+encodeURIComponent(publicIp)+
+      '?fields=success,city,region,country', {signal:AbortSignal.timeout(3500)});
+    if(!response.ok)return 'Não identificada';
+    const result=await response.json() as {
+      success?:boolean;city?:unknown;region?:unknown;country?:unknown
+    };
+    if(!result.success)return 'Não identificada';
+    const location=[result.city,result.region,result.country]
+      .map(x=>safeText(x,60)).filter(Boolean);
+    return location.length?location.join(', '):'Não identificada';
+  }catch{return 'Não identificada';}
+}
+function deviceDetails(userAgent: unknown) {
+  const ua=safeText(userAgent,700);
+  const os=/Android/i.test(ua)?'Android':/iPhone/i.test(ua)?'iPhone':
+    /iPad/i.test(ua)?'iPad':/Windows/i.test(ua)?'Windows':
+    /Macintosh|Mac OS X/i.test(ua)?'Mac':/Linux/i.test(ua)?'Linux':'Não identificado';
+  const browser=/Edg\//i.test(ua)?'Microsoft Edge':/OPR\//i.test(ua)?'Opera':
+    /Firefox\//i.test(ua)?'Firefox':/Chrome\//i.test(ua)?'Chrome':
+    /Safari\//i.test(ua)?'Safari':'Não identificado';
+  return {os,browser};
+}
+function loginDate(value: unknown) {
+  const date=new Date(typeof value==='string'?value:'');
+  if(Number.isNaN(date.getTime()))return 'Não informado';
+  return new Intl.DateTimeFormat('pt-BR',{
+    timeZone:'America/Rio_Branco',day:'2-digit',month:'2-digit',year:'numeric',
+    hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false,
+  }).format(date)+' (Rio Branco/AC)';
+}
+async function loginNotification(db: ReturnType<typeof createClient>, alert: {
+  referencia_key?:unknown; mensagem?:unknown;created_at?:unknown
+}) {
+  const auditId=typeof alert.referencia_key==='string' &&
+    /^login_audit:[a-f0-9-]{36}$/i.test(alert.referencia_key)
+    ?alert.referencia_key.slice('login_audit:'.length):null;
+  let audit: {user_id?:string;ip?:string;user_agent?:string;created_at?:string}|null=null;
+  if(auditId){
+    const result=await db.from('login_auditoria')
+      .select('user_id,ip,user_agent,created_at')
+      .eq('id',auditId).eq('sucesso',true).maybeSingle();
+    if(!result.error)audit=result.data;
+  }
+  let name='Usuário';
+  if(audit?.user_id){
+    const profile=await db.from('perfis').select('nome')
+      .eq('user_id',audit.user_id).maybeSingle();
+    if(!profile.error && profile.data?.nome)name=safeText(profile.data.nome,85);
+  }
+  if(name==='Usuário'){
+    const match=/^(.{1,90}?) entrou no sistema em /i.exec(safeText(alert.mensagem,500));
+    if(match)name=safeText(match[1],85);
+  }
+  const device=deviceDetails(audit?.user_agent);
+  if(device.os==='Não identificado'){
+    const old=/Dispositivo:\s*([^.]*)/i.exec(safeText(alert.mensagem,500));
+    if(old)device.os=safeText(old[1],80);
+  }
+  const location=await approximateLocation(audit?.ip);
+  return 'MATOS | Novo acesso ao sistema' +
+    '\nUsuário: '+name +
+    '\nLocalização aproximada: '+location +
+    '\nDispositivo: '+device.os +
+    '\nNavegador: '+device.browser +
+    '\nData e horário: '+loginDate(audit?.created_at||alert.created_at) +
+    '\n\nA localização é estimada pelo IP, não pelo GPS.' +
+    '\nSe não reconhecer o acesso, revise as contas na Casa Matos.';
+}
+
 async function internalDispatch(req: Request) {
   const supplied = req.headers.get('x-matos-telegram-secret') || '';
   if (supplied.length !== 64) return json(req, { error: 'unauthorized' }, 401);
@@ -103,17 +198,20 @@ async function internalDispatch(req: Request) {
   let sent = 0, retried = 0, failed = 0;
   for (const item of batch.data || []) {
     const [link, alert] = await Promise.all([
-      db.from('telegram_vinculos').select('chat_id,ativo').eq('user_id', item.user_id).maybeSingle(),
-      db.from('alertas').select('tipo,resolvido').eq('id', item.alerta_id).maybeSingle(),
+      db.from('telegram_vinculos').select('chat_id,ativo,notificar_logins').eq('user_id', item.user_id).maybeSingle(),
+      db.from('alertas').select('tipo,resolvido,referencia_key,mensagem,created_at').eq('id', item.alerta_id).maybeSingle(),
     ]);
     let status = 'erro', reason = 'telegram_link_unavailable', retryAt: string | null = null;
     let telegramFailure: TelegramResponse | null = null;
-    if (!link.error && link.data?.ativo && !alert.error && alert.data && !alert.data.resolvido && alert.data.tipo !== 'login') {
+    if (!link.error && link.data?.ativo && !alert.error && alert.data && !alert.data.resolvido &&
+      (alert.data.tipo !== 'login' || link.data.notificar_logins)) {
       const priority = item.prioridade === 'urgente' ? 'Urgente' :
         item.prioridade === 'alta' ? 'Alta' : 'Normal';
-      const message = 'MATOS | ' + category(alert.data.tipo) +
-        '\nPrioridade: ' + priority +
-        '\nConsulte a Casa Matos para ver detalhes e tomar providências.';
+      const message = alert.data.tipo==='login'
+        ?await loginNotification(db,alert.data)
+        :'MATOS | ' + category(alert.data.tipo) +
+          '\nPrioridade: ' + priority +
+          '\nConsulte a Casa Matos para ver detalhes e tomar providências.';
       telegramFailure = await sendMessage(token, link.data.chat_id, message);
       if (telegramFailure.ok) {
         status = 'enviado';
@@ -162,7 +260,7 @@ async function adminAction(req: Request, body: Record<string, unknown>) {
 
   if (action === 'status') {
     const link = await db.from('telegram_vinculos')
-      .select('bot_username,vinculado_em,testado_em,ativo').eq('user_id', userId).maybeSingle();
+      .select('bot_username,vinculado_em,testado_em,ativo,notificar_logins').eq('user_id', userId).maybeSingle();
     if (link.error) return json(req, { error: 'status_unavailable' }, 503);
     if (!token) return json(req, {
       ok: true, configured: false, linked: !!link.data, enabled: false,
@@ -171,6 +269,7 @@ async function adminAction(req: Request, body: Record<string, unknown>) {
     return json(req, {
       ok: true, configured: true, bot_healthy: Boolean(username),
       linked: !!link.data, enabled: Boolean(link.data?.ativo),
+      login_notifications: Boolean(link.data?.notificar_logins),
       tested: Boolean(link.data?.testado_em),
       bot_username: username || undefined,
     });
@@ -221,6 +320,30 @@ async function adminAction(req: Request, body: Record<string, unknown>) {
     return json(req, { ok: true, linked: true, enabled: false });
   }
 
+  if (action === 'set_login_notifications') {
+    if(typeof body.enabled!=='boolean')return json(req,{error:'invalid_login_preference'},400);
+    const existing=await db.from('telegram_vinculos')
+      .select('ativo').eq('user_id',userId).maybeSingle();
+    if(existing.error)return json(req,{error:'link_lookup_failed'},503);
+    if(!existing.data)return json(req,{error:'not_linked'},409);
+    const updated=await db.from('telegram_vinculos')
+      .update({notificar_logins:body.enabled,updated_at:new Date().toISOString()})
+      .eq('user_id',userId);
+    if(updated.error)return json(req,{error:'login_preference_failed'},503);
+    if(!body.enabled){
+      const queued=await db.from('telegram_fila')
+        .select('id,alerta_id').eq('user_id',userId).in('status',['pendente','enviando']);
+      if(!queued.error && queued.data?.length){
+        const ids=queued.data.map(x=>x.alerta_id);
+        const events=await db.from('alertas').select('id').eq('tipo','login').in('id',ids);
+        const loginIds=(events.data||[]).map(x=>x.id);
+        if(loginIds.length)await db.from('telegram_fila')
+          .update({status:'descartado',ultimo_erro:'Avisos de login desativados',processando_em:null})
+          .eq('user_id',userId).in('alerta_id',loginIds).in('status',['pendente','enviando']);
+      }
+    }
+    return json(req,{ok:true,login_notifications:body.enabled});
+  }
   const link = await db.from('telegram_vinculos').select('*').eq('user_id', userId).maybeSingle();
   if (link.error) return json(req, { error: 'link_lookup_failed' }, 503);
   if (!link.data) return json(req, { error: 'not_linked' }, 409);
