@@ -92,7 +92,7 @@ function category(kind: unknown) {
 // Usa apenas IP do registro de auditoria quando alertas de acesso estão
 // habilitados. O endereço completo nunca integra o texto do Telegram.
 function safeText(value: unknown, limit=100) {
-  return typeof value === 'string' ? value.replace(/[\u0000-\u001F\u007F]/g,' ').trim().slice(0,limit) : '';
+  return typeof value === 'string' ? [...value].map(ch => { const n=ch.charCodeAt(0); return n<32||n===127?' ':ch }).join('').trim().slice(0,limit) : '';
 }
 function remoteIp(ip: unknown) {
   const input=safeText(ip,45);
