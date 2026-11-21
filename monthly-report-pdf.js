@@ -238,10 +238,25 @@ async function exportReport(k,rows,progress,options){
   {title:'PREVISTO',width:72},{title:'RECEBIDO',width:72},{title:'PAGO EM',width:79},
   {title:'SITUAÇÃO',width:65},{title:'COMPROVANTE',width:125}];
  var rowsize=31;
+ // Use o MESMO eixo da direita para cabeçalhos e valores financeiros.
+ // Isso evita a aparência de valores deslocados para outra coluna.
+ function rightCell(value,x,width,yy,size,font,color){
+  var face=font||normal,v=readable(value),sizeToDraw=size;
+  while(sizeToDraw>5.75&&face.widthOfTextAtSize(v,sizeToDraw)>width-10)sizeToDraw-=.25;
+  if(face.widthOfTextAtSize(v,sizeToDraw)>width-10){
+   throw new Error('Um valor ultrapassou a largura da coluna do relatório. Confira o lançamento.')
+  }
+  text(v,x+width-5-face.widthOfTextAtSize(v,sizeToDraw),yy,sizeToDraw,face,color||pal.ink)
+ }
  function tableHeading(){
   var x=margin;
   page.drawRectangle({x:margin,y:y-23,width:w-2*margin,height:25,color:pal.navy});
-  cols.forEach(function(col){text(col.title,x+5,y-16,7.3,bold,pal.white,col.width-10);x+=col.width});
+  cols.forEach(function(col,j){
+   if(j===3||j===4)rightCell(col.title,x,col.width,y-16,7.3,bold,pal.white);
+   else text(col.title,x+5,y-16,7.3,bold,pal.white,col.width-10);
+   if(j>0)page.drawRectangle({x:x-.5,y:y-21,width:.5,height:21,color:pal.blue});
+   x+=col.width
+  });
   y-=25
  }
  function section(name,list){
@@ -260,13 +275,12 @@ async function exportReport(k,rows,progress,options){
     r.status==='pago'?'Pago':'Pendente',r.charge&&byId[r.charge.id]?'Comprovante '+byId[r.charge.id]:'Sem anexo'];
    cols.forEach(function(col,j){
     if(j<=1)drawWrapped(page,values[j],normal,8.1,x+5,y-12,col.width-11,pal.ink,2,10);
-    else if(j===3||j===4){
-     var val=fit(values[j],normal,8,col.width-10);
-     text(val,x+col.width-5-normal.widthOfTextAtSize(val,8),y-18,8,normal,pal.ink)
-    }else{
+    else if(j===3||j===4)rightCell(values[j],x,col.width,y-18,8,normal,pal.ink);
+    else{
      var size=j===5?7.2:8;
      text(values[j],x+5,y-18,size,j===6?bold:normal,j===6?(r.status==='pago'?pal.green:pal.red):pal.ink,col.width-10)
     }
+    if(j>0)page.drawRectangle({x:x-.4,y:y-rowsize+3,width:.4,height:rowsize-6,color:pal.stroke});
     x+=col.width
    });
    y-=rowsize

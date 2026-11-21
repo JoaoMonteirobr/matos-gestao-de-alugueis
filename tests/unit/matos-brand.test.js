@@ -120,6 +120,6 @@ describe('Nova identidade Matos com logo animada', () => {
     expect(html).toContain('/app1.js?v=20261113-5');
     expect(html).toContain('/navigation-sidebar.js?v=2');
     expect(html).toContain('/access-management.js?v=1');
-    expect(html).toContain('/monthly-report-pdf.js?v=3');
+    expect(html).toContain('/monthly-report-pdf.js?v=4');
   });
 });

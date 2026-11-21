@@ -84,6 +84,7 @@ describe('relatório de situação do IPTU', () => {
   it('exporta PDF multipágina com dados e páginas identificadas', () => {
     const { root, api } = context();
     const text = [];
+    const coordinates = [];
     const saved = [];
     let page = 1;
     class Pdf {
@@ -96,7 +97,7 @@ describe('relatório de situação do IPTU', () => {
       setTextColor() {}
       setDrawColor() {}
       line() {}
-      text(value) { text.push(String(value)); }
+      text(value,x,y) { text.push(String(value)); coordinates.push({ value:String(value),x,y,page }); }
       splitTextToSize(value) { return [value]; }
       getTextWidth(value) { return String(value).length; }
       addPage() { page += 1; }
@@ -111,10 +112,23 @@ describe('relatório de situação do IPTU', () => {
     expect(saved).toEqual(['MATOS_IPTU_Situacao_2026_todos.pdf']);
     expect(text.join(' ')).toContain('FALTA QUITAR');
     expect(text.join(' ')).toContain('A conferir');
+    const moneyHeader=coordinates.find((t)=>t.page===1&&t.value==='VALOR ANUAL'&&t.y>70);
+    const firstAmount=coordinates.find((t)=>t.page===1&&t.value.includes('4.879,20')&&t.y>75);
+    expect(moneyHeader).toBeDefined();
+    expect(firstAmount).toBeDefined();
+    expect(Math.abs(
+      moneyHeader.x+moneyHeader.value.length-firstAmount.x-firstAmount.value.length
+    )).toBeLessThan(.1);
+    for(const call of coordinates){
+      expect(call.x).toBeGreaterThanOrEqual(0);
+      expect(call.x+call.value.length).toBeLessThanOrEqual(297.5);
+      expect(call.y).toBeGreaterThanOrEqual(0);
+      expect(call.y).toBeLessThan(210);
+    }
   });
 
   it('carrega o módulo e o CSS após o cálculo do IPTU', () => {
-    expect(html.indexOf('/iptu-situation-report.js?v=1')).toBeGreaterThan(html.indexOf('/iptu-annual.js?v=3'));
+    expect(html.indexOf('/iptu-situation-report.js?v=2')).toBeGreaterThan(html.indexOf('/iptu-annual.js?v=3'));
     expect(html).toContain('/iptu-situation-report.css?v=1');
   });
 });
