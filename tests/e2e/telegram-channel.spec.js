@@ -115,7 +115,7 @@ test('vincula bot, testa mensagem e só ativa por confirmação explícita',asyn
   expect(control.stats().loginNotifications).toBe(true);
   await page.getByRole('button',{name:'Desativar avisos de login'}).click();
   expect(control.stats().loginNotifications).toBe(false);
-  await page.getByRole('button',{name:'Desativar avisos'}).click();
+  await page.getByRole('button',{name:'Desativar avisos',exact:true}).click();
   await expect(page.locator('#telegram_badge')).toHaveText('Conectado · desligado');
   expect(control.stats().enabled).toBe(false);
   expect(control.stats().autoDispatchCalls).toBe(0);
