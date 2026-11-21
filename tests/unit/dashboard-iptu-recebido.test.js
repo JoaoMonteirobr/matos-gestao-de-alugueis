@@ -116,7 +116,7 @@ describe('Dashboard anual — IPTU recebido',()=>{
     expect(css).toContain('.iptu-received-secondary strong{font-size:clamp(12px,1.15vw,15px)');
     expect(css).toContain('.iptu-received-primary strong{font-size:19px}');
     expect(css).toContain('.iptu-received-primary strong{font-size:17px}');
-    expect(index).toContain('/simple-ui.css?v=18');
+    expect(index).toContain('/simple-ui.css?v=19');
   });
 
   it('adapta-se ao celular e mantém o valor separado da soma de aluguéis',()=>{
