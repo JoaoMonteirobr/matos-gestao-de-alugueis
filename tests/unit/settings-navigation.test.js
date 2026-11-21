@@ -137,7 +137,7 @@ describe('Configurações: cinco cadastros funcionais', () => {
     expect(enhancements).toContain('if(current&&vals.indexOf(current)<0)vals.push(current)');
     expect(app2).toContain("'Imóveis':'imóvel'");
     expect(app2).toContain("'Contratos':'contrato'");
-    expect(html).toContain('/simple-ui.js?v=20');
+    expect(html).toContain('/simple-ui.js?v=21');
     expect(html).toContain('/app2.js?v=20261113-3');
     expect(html).toContain('/enhancements.js?v=20261108-2');
   });
