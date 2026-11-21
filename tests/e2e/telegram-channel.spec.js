@@ -11,7 +11,7 @@ async function openAdmin(page, configured=true) {
       user: { id, email: 'telegram-test@example.invalid' },
     }));
   }, USER_ID);
-  let linked=false, tested=false, enabled=false;
+  let linked=false, tested=false, enabled=false, loginNotifications=false;
   let autoDispatchCalls=0,manualTestCalls=0;
   await page.route('https://behmmbgbrsesxthsczdl.supabase.co/**', async (route) => {
     const url=new URL(route.request().url());
@@ -33,7 +33,7 @@ async function openAdmin(page, configured=true) {
         return respond({
           ok:true,configured,bot_healthy:configured,
           bot_username:configured?'MatosPilotBot':undefined,
-          linked,enabled,tested,
+          linked,enabled,tested,login_notifications:loginNotifications,
         });
       }
       expect(configured).toBe(true);
@@ -52,6 +52,10 @@ async function openAdmin(page, configured=true) {
         expect(tested).toBe(true);enabled=true;
         return respond({ok:true,enabled:true});
       }
+      if(data.action==='set_login_notifications'){
+        loginNotifications=data.enabled;
+        return respond({ok:true,login_notifications:loginNotifications});
+      }
       if(data.action==='disable'){enabled=false;return respond({ok:true,enabled:false});}
       if(data.action==='disconnect'){
         enabled=false;linked=false;tested=false;
@@ -68,7 +72,7 @@ async function openAdmin(page, configured=true) {
   await expect(page.getByRole('heading',{name:'Alertas',exact:true})).toBeVisible();
   await expect(page.locator('#telegram_panel')).toBeVisible();
   return {
-    stats:()=>({autoDispatchCalls,manualTestCalls,linked,enabled,tested}),
+    stats:()=>({autoDispatchCalls,manualTestCalls,linked,enabled,tested,loginNotifications}),
   };
 }
 
@@ -105,6 +109,12 @@ test('vincula bot, testa mensagem e só ativa por confirmação explícita',asyn
   await page.getByRole('button',{name:'Recebi o teste — ativar avisos'}).click();
   await expect(page.locator('#telegram_badge')).toHaveText('Ativo');
   expect(control.stats().enabled).toBe(true);
+  await expect(page.getByRole('button',{name:'Ativar avisos de login'})).toBeVisible();
+  await page.getByRole('button',{name:'Ativar avisos de login'}).click();
+  await expect(page.getByRole('button',{name:'Desativar avisos de login'})).toBeVisible();
+  expect(control.stats().loginNotifications).toBe(true);
+  await page.getByRole('button',{name:'Desativar avisos de login'}).click();
+  expect(control.stats().loginNotifications).toBe(false);
   await page.getByRole('button',{name:'Desativar avisos'}).click();
   await expect(page.locator('#telegram_badge')).toHaveText('Conectado · desligado');
   expect(control.stats().enabled).toBe(false);
