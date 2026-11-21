@@ -15,6 +15,8 @@ const ERROR_MESSAGES={
   not_linked:'Vincule sua conta do Telegram antes de testar.',
   test_required:'Envie primeiro a mensagem de teste e confirme o recebimento.',
   test_cooldown:'Você realizou um teste há pouco. Aguarde um minuto para enviar outro.',
+  login_preference_failed:'Não foi possível alterar os avisos de acesso.',
+  invalid_login_preference:'Preferência de alertas inválida.',
   telegram_chat_blocked:'O bot foi bloqueado ou o chat está indisponível. Desbloqueie o bot no Telegram.',
   telegram_rate_limited:'O Telegram limitou temporariamente as mensagens. Tente novamente.',
   telegram_delivery_failed:'Não foi possível enviar a mensagem ao Telegram.',
@@ -87,7 +89,12 @@ function render(){
   (status.enabled?
    '<button '+classes+' onclick="telegramDisableUI()">Desativar avisos</button>':
    (status.tested?'<button '+classes+' onclick="telegramEnableUI()">Recebi o teste — ativar avisos</button>':''))+
-  '<button '+classes+' onclick="telegramDisconnectUI()">Desvincular</button></div>';
+  '<button '+classes+' onclick="telegramDisconnectUI()">Desvincular</button></div>'+
+  '<div class="telegram-security-setting"><div><strong>Avisos de acesso ao sistema</strong>'+
+  '<p class="muted">Receba no Telegram o nome, a região aproximada, o dispositivo e o horário de cada novo login.</p></div>'+
+  '<button class="btn secondary" type="button" onclick="telegramToggleLoginUI()">'+
+  (status.login_notifications?'Desativar avisos de login':'Ativar avisos de login')+
+  '</button></div>';
 }
 function panel(){
  return '<section class="panel telegram-panel" id="telegram_panel">'+
@@ -157,7 +164,18 @@ window.telegramEnableUI=async function(){
  if(loading)return;busy(true);
  try{
   await callTelegram('enable');
-  msg('Avisos automáticos ativados. Somente alertas operacionais novos serão enviados; logins e históricos antigos não serão disparados.',false);
+  msg('Avisos automáticos ativados. Novos alertas operacionais serão enviados; logins serão incluídos conforme sua preferência. Não enviamos histórico antigo.',false);
+  await refreshMatosTelegramUI()
+ }catch(e){showError(e)}finally{busy(false)}
+};
+window.telegramToggleLoginUI=async function(){
+ if(loading||!status?.linked)return;
+ const enabled=!Boolean(status.login_notifications);
+ busy(true);
+ try{
+  await callTelegram('set_login_notifications',{enabled});
+  msg(enabled?'Avisos de login ativados. Cada novo acesso será informado no Telegram.':
+    'Avisos de login desativados. Os demais alertas continuam funcionando.',false);
   await refreshMatosTelegramUI()
  }catch(e){showError(e)}finally{busy(false)}
 };
