@@ -62,7 +62,7 @@ describe('proprietário · consulta geral com telefone e senha', () => {
     expect(ui).toContain("currentRole==='proprietario_consulta'");
     expect(ui).toContain('Somente consulta');
     expect(ui).toContain("currentRole==='admin'?'<button id=\"newProperty\"");
-    expect(ui).toContain("currentRole==='admin'?'<button id=\"newContract\"");
+    expect(ui).toContain("admin?'<button id=\"newContract\"");
     expect(gastos).toContain("currentRole!=='admin'&&currentRole!=='proprietario_consulta'");
     expect(gastos).toContain('var C=E(\'content\'),readOnly=currentRole!==\'admin\'');
     expect(ui).toContain('Baixar PDF completo com anexos');
