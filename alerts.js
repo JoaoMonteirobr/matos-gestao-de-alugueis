@@ -315,12 +315,12 @@ async function alertasPage(){
  try{
   await refreshAlerts();
   await fetchAlertState();
-  C.innerHTML='<div class="alerts-page">'+alertToolbar()+pushPanel()+'</div>';
+  C.innerHTML='<div class="alerts-page">'+alertToolbar()+(window.matosTelegramPanel?window.matosTelegramPanel():'')+pushPanel()+'</div>';
   C.querySelectorAll('[data-alert-filter]').forEach(function(button){
    button.onclick=function(){changeAlertFilter(button.getAttribute('data-alert-filter'))}
   });
   var more=E('alerts_more');if(more)more.onclick=function(){alertsVisible+=30;displayAlerts()};
-  displayAlerts();refreshMatosPushStatusUI();
+  displayAlerts();refreshMatosPushStatusUI();if(typeof window.matosTelegramMount==='function')window.matosTelegramMount();
   if(window.matosScrollToPush){
    window.matosScrollToPush=false;
    var target=E('push_test_remote');if(target)target.scrollIntoView({block:'center',behavior:'smooth'})
