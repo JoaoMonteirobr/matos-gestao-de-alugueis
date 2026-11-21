@@ -69,11 +69,12 @@ describe('exportação consolidada sem dados reais', () => {
     let embeddedPages = 0;
     let fetched = null;
     const pages = [];
+    const drawn = [];
     const font = { widthOfTextAtSize: (text, size) => String(text).length * size * 0.46 };
     const makePage = (size = [841.89, 595.28]) => ({
       getWidth: () => size[0],
       getHeight: () => size[1],
-      drawText: () => {},
+      drawText: (value,opts) => { drawn.push({ text:String(value), x:opts.x, y:opts.y, size:opts.size, pageSize:size }); },
       drawRectangle: () => {},
       drawImage: () => {},
       drawPage: () => {},
@@ -134,6 +135,7 @@ describe('exportação consolidada sem dados reais', () => {
     return {
       app: ctx.window.MatosMonthlyReport,
       pages,
+      drawn,
       getDownloaded: () => downloaded,
       getCopied: () => copiedPages,
       getAttached: () => attached,
@@ -211,6 +213,35 @@ describe('exportação consolidada sem dados reais', () => {
     expect(env.getEmbedded()).toBe(2);
     expect(env.getCopied()).toBe(0);
     expect(env.getDownloaded()).toBe(1);
+  });
+
+  it('alinha cabeçalhos com valores à direita e pagina locações longas sem sobreposição', async () => {
+    const env = fakePdfEnvironment();
+    const rows = Array.from({length:44},(_,i)=>({
+      status:i%3===0?'pendente':'pago',
+      due:'2026-11-05',expected:1234.56,paid:i%3===0?0:1234.56,
+      pending:i%3===0?1234.56:0,
+      tenant:{nome:'Inquilino '+i+' com sobrenome composto extenso e observação longa de identificação comercial'},
+      property:{nome:'Galeria comercial de várias unidades - Avenida Nações Unidas, bloco '+i},
+      charge:{id:'teste-'+i,data_pagamento:i%3===0?null:'2026-11-05'},
+    }));
+    const result=await env.app.export('2026-11',rows);
+    expect(result.paginas).toBeGreaterThan(2);
+    expect(result.anexos).toBe(0);
+    const headings=env.drawn.filter(x=>x.text==='PREVISTO');
+    const amounts=env.drawn.filter(x=>x.text==='1.234,56');
+    expect(headings.length).toBeGreaterThan(1);
+    expect(amounts.length).toBeGreaterThan(30);
+    for(const h of headings){
+      const right=h.x+h.text.length*h.size*.46;
+      expect(amounts.some(a=>Math.abs(a.x+a.text.length*a.size*.46-right)<.2)).toBe(true);
+    }
+    for(const item of env.drawn){
+      expect(item.x).toBeGreaterThanOrEqual(0);
+      expect(item.y).toBeGreaterThanOrEqual(0);
+      expect(item.y).toBeLessThanOrEqual(item.pageSize[1]);
+      expect(item.x+item.text.length*item.size*.46).toBeLessThanOrEqual(item.pageSize[0]+.1);
+    }
   });
 
   it('preserva visualmente todas as páginas de um comprovante com duas páginas', async () => {
