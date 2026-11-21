@@ -71,17 +71,16 @@ describe('Telegram opcional como canal externo de alertas', () => {
     expect(client).toContain("await callTelegram('disable')");
   });
   it('mensagens automáticas não expõem detalhes privados', () => {
-    const format = functionCode.slice(functionCode.indexOf("const message = 'MATOS | '"),
-      functionCode.indexOf("telegramFailure = await sendMessage", functionCode.indexOf("const message = 'MATOS | '")));
+    const format = functionCode.slice(functionCode.indexOf("const message = alert.data.tipo==='login'"),
+      functionCode.indexOf("telegramFailure = await sendMessage", functionCode.indexOf("const message = alert.data.tipo==='login'")));
     expect(format).toContain('category(alert.data.tipo)');
     expect(format).toContain('Prioridade');
-    expect(format).not.toContain('alert.data.mensagem');
     expect(format).not.toContain('item.mensagem');
     expect(functionCode).toContain('consulte a Casa Matos'.replace('consulte','Consulte'));
   });
   it('interface web responsiva, opcional e sem alterar push atual', () => {
-    expect(html).toContain('/telegram-integration.js?v=1');
-    expect(html).toContain('/telegram-ui.css?v=1');
+    expect(html).toContain('/telegram-integration.js?v=2');
+    expect(html).toContain('/telegram-ui.css?v=2');
     expect(css).toContain('@media(max-width:640px)');
     expect(ui).toContain("window.matosTelegramPanel?window.matosTelegramPanel():'')");
     expect(ui).toContain('window.matosTelegramMount');

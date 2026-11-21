@@ -20,3 +20,8 @@
  .telegram-panel .alerts-section-head{align-items:stretch}
  .telegram-pill{align-self:flex-start}
 }
+.telegram-security-setting{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-top:20px;padding:16px;border:1px solid var(--line,#e5e9ee);border-radius:12px;background:var(--bg,#f7f9fb)}
+.telegram-security-setting strong{display:block;font-size:14px}
+.telegram-security-setting p{max-width:550px;margin:6px 0 0;font-size:12px;line-height:1.6}
+.telegram-security-setting>.btn{flex-shrink:0;font-size:12px!important}
+@media(max-width:640px){.telegram-security-setting{flex-direction:column;align-items:stretch}.telegram-security-setting>.btn{width:100%}}
