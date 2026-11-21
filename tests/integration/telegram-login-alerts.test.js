@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 
 const read=(file)=>fs.readFileSync(path.join(process.cwd(),file),'utf8');
 const migration=read('supabase/migrations/20261120_telegram_alertas_de_login.sql');
+const initialMigration=read('supabase/migrations/20261120_telegram_canal_piloto.sql');
 const login=read('supabase/functions/secure-login/index.ts');
 const sender=read('supabase/functions/telegram-channel/index.ts');
 const ui=read('telegram-integration.js');
@@ -17,7 +18,7 @@ describe('avisos de acesso seguros pelo Telegram',()=>{
     expect(migration).not.toMatch(/UPDATE\s+public\.(?:cobrancas|imoveis|contratos|iptu)/i);
   });
   it('enfileira somente novos logins opt-in e não repete alertas antigos',()=>{
-    expect(migration).toContain('AFTER INSERT');
+    expect(initialMigration).toContain('AFTER INSERT');
     expect(migration).toContain("WHERE v.ativo AND (NEW.tipo<>'login' OR v.notificar_logins)");
     expect(migration).toContain('ON CONFLICT(alerta_id,user_id) DO NOTHING');
     expect(migration).toContain("AND (a.tipo<>'login' OR v.notificar_logins)");
