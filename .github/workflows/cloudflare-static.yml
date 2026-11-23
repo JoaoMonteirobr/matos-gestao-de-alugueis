@@ -1,0 +1,41 @@
+name: Verificar pacote Cloudflare (teste)
+
+on:
+  push:
+    branches: [cloudflare-teste]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Baixar codigo
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Configurar Node 22
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+      - name: Preparar arquivos publicos
+        run: node scripts/build-cloudflare.mjs
+      - name: Validar integridade e evitar exposicao de arquivos internos
+        shell: bash
+        run: |
+          test -f dist/index.html
+          test -f dist/app1.js
+          test -f dist/sw.js
+          test -f dist/manifest.webmanifest
+          test -f dist/_headers
+          test ! -e dist/supabase
+          test ! -e dist/tests
+          test ! -e dist/scripts
+          test ! -e dist/package.json
+          test ! -e dist/architecture.contract.json
+      - name: Arquivar pacote estatico para conferencia
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: matos-cloudflare-statico
+          path: dist/
+          retention-days: 7
