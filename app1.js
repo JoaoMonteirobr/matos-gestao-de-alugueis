@@ -2,7 +2,7 @@
 var APP=document.getElementById('app');
 var SUPA_URL='https://behmmbgbrsesxthsczdl.supabase.co';
 var KEY='sb_publishable_fOY7eu4cnokHKy-vB9xeNw_lQ496MHB';
-var SITE='https://gestao-alugueis-jp.vercel.app';
+var SITE=location.origin;
 var page='Dashboard',session=null,cache={},currentRole='visitante',currentProfile=null;
 var matosIsSuperAdmin=false;
 var adminMenus=['Dashboard','Imóveis','Proprietários','Inquilinos','Contratos','Cobranças','IPTU','Financeiro','Relatórios','Manutenção','Acessos','Configurações'];
