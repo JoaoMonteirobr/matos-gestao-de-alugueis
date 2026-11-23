@@ -7,7 +7,7 @@ const source = (name) => fs.readFileSync(path.join(process.cwd(), name), 'utf8')
 describe('Central de Alertas acessível após sobrescrita do menu', () => {
   test('menu moderno preserva Alertas ao reconstruir adminMenus e ownerMenus', () => {
     const main = source('simple-ui.js');
-    expect(main).toContain("var adminMain=consultaMenus.concat(['Alertas','Acessos','Configurações'])");
+    expect(main).toContain("var adminMain=consultaMenus.concat(['Acessos','Configurações'])");
     expect(main).toContain("var ownerMain=['Dashboard','Alertas'");
     expect(main).toContain('adminMenus=adminMain; ownerMenus=ownerMain');
     expect(source('alerts.js')).toContain("if(page==='Alertas')return alertasPage()");
@@ -28,10 +28,10 @@ describe('Central de Alertas acessível após sobrescrita do menu', () => {
   test('login fica no histórico, mas não ocupa o badge do sino operacional', () => {
     const client = source('notification-session.js');
     const center = source('alerts.js');
-    expect(client).toContain('&tipo=neq.login&order=created_at.desc');
+    expect(client).toContain("'/rest/v1/rpc/matos_notificacoes_inbox'");
     expect(center).toContain("if(alertFilter==='acessos')");
     expect(center).toContain("categoryLabel(a.tipo)");
-    expect(client).toContain("new Set((result[1]||[]).map");
+    expect(client).toContain('renderBellRows(data&&data.items||[],data&&data.total||0)');
   });
 
   test('Playwright usa o servidor local com mocks em vez de pular testes', () => {

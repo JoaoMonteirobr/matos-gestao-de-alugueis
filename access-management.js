@@ -97,7 +97,7 @@ function bindAccountActions(){
   ['edit','password','delete'].forEach(function(action){
     Array.prototype.forEach.call(document.querySelectorAll('[data-access-'+action+']'),function(el){
       el.onclick=function(){
-        if(currentRole!=='admin')return;
+        if(!matosIsSuperAdmin)return;
         var id=el.getAttribute('data-access-'+action);
         var account=accessState.accounts.find(function(a){return a.user_id===id});
         if(!account||account.role==='admin'||!account.gerenciavel)return;
@@ -153,7 +153,7 @@ function accessOverview(){
 }
 async function accessPage(){
   var C=E('content');
-  if(currentRole!=='admin'){
+  if(!matosIsSuperAdmin){
     C.innerHTML='<div class="notice err">Gerenciamento de acessos exclusivo para administradores.</div>';
     return
   }
@@ -184,7 +184,7 @@ async function accessPage(){
   };
   E('newAccessGenerate').onclick=function(){E('newAccessPassword').value=passwordStrong()};
   E('newAccessSave').onclick=async function(){
-    if(currentRole!=='admin')return;
+    if(!matosIsSuperAdmin)return;
     var role=E('newAccessRole').value,linked=E('newAccessLink').value,nome=E('newAccessName').value.trim();
     var phone=E('newAccessPhone').value,email=E('newAccessEmail').value.trim(),pw=E('newAccessPassword').value;
     var btn=this,msg=E('newAccessMessage');
@@ -254,7 +254,7 @@ function showEdit(a){
     if(person){E('editAccessName').value=person.nome||'';if(E('editAccessRole').value==='proprietario_consulta')E('editAccessPhone').value=formattedPhone(person.telefone)}
   };
   E('editAccessSave').onclick=async function(){
-    if(currentRole!=='admin')return;
+    if(!matosIsSuperAdmin)return;
     var role=E('editAccessRole').value,linked=E('editAccessLink').value;
     var name=E('editAccessName').value.trim(),phone=E('editAccessPhone').value,email=E('editAccessEmail').value.trim();
     var msg=E('editAccessMessage'),btn=this;
@@ -315,7 +315,7 @@ function showDelete(a){
     +'<div id="removeAccessMessage" role="status" aria-live="polite"></div></div>'
     +'<div class="modalfoot"><button type="button" class="btn secondary" data-access-close>Cancelar</button><button type="button" class="btn access-danger-button" id="removeAccessSave">Excluir definitivamente</button></div></section>');
   E('removeAccessSave').onclick=async function(){
-    if(currentRole!=='admin')return;
+    if(!matosIsSuperAdmin)return;
     var why=E('removeAccessReason').value.trim(),typed=E('removeAccessConfirm').value.trim();
     var msg=E('removeAccessMessage'),btn=this;
     if(why.length<8||why.length>240||typed!=='EXCLUIR'){

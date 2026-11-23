@@ -59,6 +59,6 @@ describe('preflight de documentos financeiros PDF',()=>{
   expect(css).toContain('.matos-monthly-report .tablewrap,#printArea .tablewrap');
   expect(css).toContain('overflow:visible!important');
   expect(css).toContain('.matos-monthly-report .report-table thead{display:table-header-group}');
-  expect(html).toContain('/simple-ui.css?v=20');
+  expect(html).toContain('/simple-ui.css?v=21');
  });
 });

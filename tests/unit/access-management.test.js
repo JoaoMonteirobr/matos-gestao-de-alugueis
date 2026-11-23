@@ -38,6 +38,7 @@ function createHarness(role='admin'){
   document:dom.window.document,
   window:null,
   currentRole:role,
+  matosIsSuperAdmin:role==='admin',
   session:{access_token:'jwt-exemplo'},
   cache:{},
   crypto:dom.window.crypto,
@@ -181,7 +182,7 @@ describe('Gerenciamento de acessos — tela do administrador',()=>{
   expect(backend).toContain("normalizedBrazilMobile(linked.data.telefone)");
   expect(backend).toContain("role === 'proprietario_consulta'");
   expect(backend).not.toContain('serviceRole:');
-  expect(index).toContain('/access-management.js?v=1');
+  expect(index).toContain('/access-management.js?v=2');
   expect(index).toContain('/access-management.css?v=1');
  });
 });

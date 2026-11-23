@@ -29,7 +29,11 @@ async function openContracts(page,role='admin'){
   });
   requests.push({pathname:url.pathname,method});
   if(url.pathname==='/auth/v1/user')return respond({id:USER,email:'teste@example.invalid'});
-  if(url.pathname==='/rest/v1/perfis')return respond([{user_id:USER,nome:'Usuário Teste',role}]);
+  if (url.pathname === '/rest/v1/rpc/matos_is_superadmin') return respond(true);
+    if (url.pathname === '/rest/v1/rpc/matos_notificacoes_inbox') {
+      return respond({total:0,items:[]});
+    }
+    if(url.pathname==='/rest/v1/perfis')return respond([{user_id:USER,nome:'Usuário Teste',role}]);
   if(url.pathname==='/rest/v1/contratos'){
    if(method==='POST'){
     const data=route.request().postDataJSON();const created={...data,id:CONTRACT};

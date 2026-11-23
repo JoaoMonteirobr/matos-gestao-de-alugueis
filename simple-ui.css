@@ -308,3 +308,12 @@
  .contract-row-actions{flex-direction:column;align-items:stretch;min-width:80px}
  .contract-row-actions button{min-height:36px}
 }
+
+/* Acesso privilegiado: formulário interno de troca de senha. */
+.master-password-panel{max-width:620px;padding:24px!important}
+.master-password-panel form{display:grid;gap:9px;margin-top:18px}
+.master-password-panel .inp{width:100%}
+.master-password-panel .btn{margin-top:12px;justify-self:start}
+.master-password-panel [role=status]:not(:empty){margin-top:8px}
+@media(max-width:680px){.master-password-panel{padding:16px!important}.master-password-panel .btn{width:100%}}
+@media(max-width:620px){.appbar-tools{gap:8px}.notify-wrap{flex-shrink:0}.session-timer{min-width:0}.notify-panel{max-width:min(92vw,360px)}}

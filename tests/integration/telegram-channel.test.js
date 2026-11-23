@@ -79,7 +79,7 @@ describe('Telegram opcional como canal externo de alertas', () => {
     expect(functionCode).toContain('consulte a Casa Matos'.replace('consulte','Consulte'));
   });
   it('interface web responsiva, opcional e sem alterar push atual', () => {
-    expect(html).toContain('/telegram-integration.js?v=2');
+    expect(html).toContain('/telegram-integration.js?v=3');
     expect(html).toContain('/telegram-ui.css?v=2');
     expect(css).toContain('@media(max-width:640px)');
     expect(ui).toContain("window.matosTelegramPanel?window.matosTelegramPanel():'')");

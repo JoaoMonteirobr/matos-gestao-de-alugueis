@@ -46,6 +46,11 @@ async function openAdmin(page) {
     if (url.pathname === '/auth/v1/user') {
       return respond({ id: USER_ID, email: 'teste@example.invalid' });
     }
+    if (url.pathname === '/rest/v1/rpc/matos_is_superadmin') return respond(true);
+    if (url.pathname === '/rest/v1/rpc/matos_notificacoes_inbox') {
+      const unread=[OPERATIONAL_ALERT].filter(x=>!readByUser.has(x.id));
+      return respond({total:unread.length,items:unread});
+    }
     if (url.pathname === '/rest/v1/perfis') {
       return respond([{ user_id: USER_ID, nome: 'Admin de teste', role: 'admin' }]);
     }

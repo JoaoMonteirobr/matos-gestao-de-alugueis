@@ -67,7 +67,7 @@ describe('avisos de acesso seguros pelo Telegram',()=>{
     expect(ui).toContain("await callTelegram('set_login_notifications',{enabled})");
     expect(ui).toContain('Desativar avisos de login');
     expect(ui).toContain('Ativar avisos de login');
-    expect(html).toContain('/telegram-integration.js?v=2');
+    expect(html).toContain('/telegram-integration.js?v=3');
     expect(styles).toContain('.telegram-security-setting');
   });
 });

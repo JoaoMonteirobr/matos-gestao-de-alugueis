@@ -80,7 +80,7 @@ describe('Nova identidade Matos com logo animada', () => {
   it('utiliza o novo símbolo no menu de todos os perfis sem mudar autenticação', () => {
     expect(mainScript).toContain('class="sidebrand matos-dashboard-brand"');
     expect(mainScript).toContain('class="logo matos-sidebar-mark" aria-hidden="true"');
-    expect(mainScript).toContain("currentRole==='admin'?adminMenus");
+    expect(mainScript).toContain("matosIsSuperAdmin?adminMenus:operatorMenus");
     expect(mainScript).toContain("currentRole==='proprietario_consulta'?consultaMenus");
     expect(mainScript).toContain('currentRole=\'visitante\';currentProfile=null;render()');
     expect(mainScript).toContain("session.access_token");
@@ -117,9 +117,9 @@ describe('Nova identidade Matos com logo animada', () => {
     expect(html).toContain('/matos-brand.css?v=2');
     expect(html).toContain('/theme-led.css?v=9');
     expect(html).toContain('/theme-led.js?v=15');
-    expect(html).toContain('/app1.js?v=20261113-5');
+    expect(html).toContain('/app1.js?v=20261122-1');
     expect(html).toContain('/navigation-sidebar.js?v=2');
-    expect(html).toContain('/access-management.js?v=1');
+    expect(html).toContain('/access-management.js?v=2');
     expect(html).toContain('/monthly-report-pdf.js?v=4');
   });
 });

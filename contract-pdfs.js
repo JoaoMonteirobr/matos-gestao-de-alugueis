@@ -5,7 +5,7 @@ var BUCKET='documentos-imoveis',MAX_PDF_BYTES=15*1024*1024;
 var UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function adminOnly(){
- if(currentRole!=='admin')throw new Error('Somente o administrador pode alterar contratos.');
+ if(!matosIsSuperAdmin)throw new Error('Somente o administrador pode alterar contratos.');
  if(!session?.access_token)throw new Error('Sua sessão expirou. Entre novamente no sistema.')
 }
 function encodePath(path){

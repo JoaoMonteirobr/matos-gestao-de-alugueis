@@ -116,7 +116,7 @@ describe('Dashboard anual — IPTU recebido',()=>{
     expect(css).toContain('.iptu-received-secondary strong{font-size:clamp(12px,1.15vw,15px)');
     expect(css).toContain('.iptu-received-primary strong{font-size:19px}');
     expect(css).toContain('.iptu-received-primary strong{font-size:17px}');
-    expect(index).toContain('/simple-ui.css?v=20');
+    expect(index).toContain('/simple-ui.css?v=21');
   });
 
   it('adapta-se ao celular e mantém o valor separado da soma de aluguéis',()=>{
@@ -124,8 +124,8 @@ describe('Dashboard anual — IPTU recebido',()=>{
     expect(css).toContain('.iptu-received-primary');
     expect(css).toContain('@media(max-width:760px)');
     expect(css).toContain('@media(max-width:390px)');
-    expect(index).toContain('/simple-ui.js?v=21');
-    expect(index).toContain('/simple-ui.css?v=20');
+    expect(index).toContain('/simple-ui.js?v=22');
+    expect(index).toContain('/simple-ui.css?v=21');
     expect(js).toContain("Promise.all([ledgerData(k),dbGet('manutencoes'),dbGet('iptu')])");
   });
 });

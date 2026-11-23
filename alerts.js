@@ -37,7 +37,7 @@ function rowMarkup(a){
  var isUnread=unread(a),done=a.resolvido;
  var actions=(isUnread?
   '<button class="btn secondary" type="button" onclick="markAlertReadUI(\''+a.id+'\')">Marcar como lida</button>':'');
- if(!done&&operational(a)&&currentRole==='admin'){
+ if(!done&&operational(a)&&matosIsSuperAdmin){
   actions+='<button class="btn secondary" type="button" onclick="resolveAlert(\''+a.id+'\')">Resolver pendência</button>';
  }
  return '<article class="alert-entry'+(isUnread?' is-unread':'')+'">'+
@@ -85,7 +85,7 @@ function errorText(e){
  return s
 }
 async function refreshAlerts(){
- if(currentRole!=='admin')return;
+ if(!matosIsSuperAdmin)return;
  try{await request('/rest/v1/rpc/gerar_alertas_operacionais',{
   method:'POST',headers:authHeaders(session.access_token),body:'{}'
  })}catch(e){}
@@ -127,7 +127,7 @@ async function markAlertReadUI(id){
 }
 window.markAlertReadUI=markAlertReadUI;
 async function resolveAlert(id){
- if(currentRole!=='admin')return;
+ if(!matosIsSuperAdmin)return;
  try{
   await request('/rest/v1/alertas?id=eq.'+encodeURIComponent(id),{
    method:'PATCH',headers:Object.assign(authHeaders(session.access_token),
@@ -204,7 +204,7 @@ async function refreshMatosPushStatusUI(){
   }
  }catch(e){if(x)x.textContent='Registro indisponível';
   var s=E('push_status');if(s)s.textContent='Verificação indisponível'}
- if(currentRole==='admin'){
+ if(matosIsSuperAdmin){
   try{
    var status=await window.getMatosPushServerStatus();
    server.textContent=status.configured?'Firebase conectado':'Credencial Firebase pendente';
@@ -315,12 +315,12 @@ async function alertasPage(){
  try{
   await refreshAlerts();
   await fetchAlertState();
-  C.innerHTML='<div class="alerts-page">'+alertToolbar()+(window.matosTelegramPanel?window.matosTelegramPanel():'')+pushPanel()+'</div>';
+  C.innerHTML='<div class="alerts-page">'+alertToolbar()+(matosIsSuperAdmin&&window.matosTelegramPanel?window.matosTelegramPanel():'')+(matosIsSuperAdmin?pushPanel():'')+'</div>';
   C.querySelectorAll('[data-alert-filter]').forEach(function(button){
    button.onclick=function(){changeAlertFilter(button.getAttribute('data-alert-filter'))}
   });
   var more=E('alerts_more');if(more)more.onclick=function(){alertsVisible+=30;displayAlerts()};
-  displayAlerts();refreshMatosPushStatusUI();if(typeof window.matosTelegramMount==='function')window.matosTelegramMount();
+  displayAlerts();if(matosIsSuperAdmin){refreshMatosPushStatusUI();if(typeof window.matosTelegramMount==='function')window.matosTelegramMount()}
   if(window.matosScrollToPush){
    window.matosScrollToPush=false;
    var target=E('push_test_remote');if(target)target.scrollIntoView({block:'center',behavior:'smooth'})
