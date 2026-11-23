@@ -33,15 +33,15 @@ function profilePage(){
  +'<label class="lbl" for="pf_nome">Nome</label><input id="pf_nome" class="inp" maxlength="80" autocomplete="name" placeholder="Ex.: Maria da Silva" value="'+esc(currentName())+'">'
  +'<div class="perfil-info"><div><span>Login</span><b>'+esc(loginLabel())+'</b></div><div><span>Tipo de acesso</span><b>'+esc(roleLabel())+'</b></div></div>'
  +'<button id="pf_save" class="btn primary" type="button">Salvar nome</button></div>'
- +'<div class="panel simple-panel"><div class="panel-title"><h3>Trocar senha</h3></div>'
+ +(matosIsSuperAdmin?'<div class="panel simple-panel"><h3>Segurança da conta</h3><p class="muted">Para alterar sua senha, acesse Configurações → Minha senha. A senha atual será solicitada.</p></div>':'<div class="panel simple-panel"><div class="panel-title"><h3>Trocar senha</h3></div>'
  +'<div id="pw_msg"></div>'
  +'<label class="lbl" for="pw_new">Senha nova</label><input id="pw_new" class="inp" type="password" autocomplete="new-password" placeholder="Pelo menos 8 caracteres">'
  +'<label class="lbl" for="pw_again">Repita a senha nova</label><input id="pw_again" class="inp" type="password" autocomplete="new-password">'
- +'<button id="pw_save" class="btn secondary" type="button">Trocar senha</button></div>'
+ +'<button id="pw_save" class="btn secondary" type="button">Trocar senha</button></div>')
  +'</div>';
  if(currentRole==='admin'&&root.MatosAvatar)root.MatosAvatar.mountPicker();
  E('pf_save').onclick=saveName;
- E('pw_save').onclick=savePassword;
+ if(E('pw_save'))E('pw_save').onclick=savePassword;
  E('pf_nome').onkeydown=function(e){if(e.key==='Enter')saveName()};
 }
 async function saveName(){
@@ -56,6 +56,7 @@ async function saveName(){
  }catch(e){msg.innerHTML='<div class="notice err">'+esc(e.message)+'</div>';btn.disabled=false}
 }
 async function savePassword(){
+ if(matosIsSuperAdmin)return;
  var msg=E('pw_msg'),btn=E('pw_save'),a=E('pw_new').value,b=E('pw_again').value,err=passwordError(a,b);
  if(err){msg.innerHTML='<div class="notice err">'+esc(err)+'</div>';return}
  btn.disabled=true;msg.innerHTML='<div class="notice">Trocando a senha...</div>';
@@ -68,7 +69,7 @@ async function savePassword(){
 }
 
 // ---------- Menu e roteamento ----------
-[adminMenus,ownerMenus,tenantMenus,root.consultaMenus].forEach(function(list){if(list&&list.indexOf(PAGE)<0)list.push(PAGE)});
+[adminMenus,typeof operatorMenus==='undefined'?[]:operatorMenus,ownerMenus,tenantMenus,root.consultaMenus].forEach(function(list){if(list&&list.indexOf(PAGE)<0)list.push(PAGE)});
 var prevIcon=root.navIcon;navIcon=function(x){return x===PAGE?'☺':prevIcon(x)};root.navIcon=navIcon;
 var prevLoad=root.load;
 load=async function(){if(page===PAGE)return profilePage();return prevLoad.apply(this,arguments)};

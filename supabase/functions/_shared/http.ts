@@ -62,6 +62,8 @@ export async function requireAdmin(req: Request) {
 
   const profile = await client.from('perfis').select('role').eq('user_id', data.user.id).maybeSingle();
   if (profile.error || profile.data?.role !== 'admin') return { error: 'forbidden' as const };
+  const owner = await client.rpc('matos_is_superadmin');
+  if (owner.error || owner.data !== true) return { error: 'forbidden' as const };
   return { user: data.user, client };
 }
 

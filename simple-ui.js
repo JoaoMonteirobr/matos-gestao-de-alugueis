@@ -4,10 +4,11 @@
 // Define os menus visíveis para cada perfil de usuário.
 // Mesma navegação operacional para administrador e proprietário de consulta geral.
 // A diferença é a permissão: somente o administrador recebe ações de escrita.
-var consultaMenus=['Dashboard','Cadastros','Inquilinos','Contratos','Pagamentos','IPTU','Chamados','Financeiro','Gastos','Relatórios'];
-var adminMain=consultaMenus.concat(['Alertas','Acessos','Configurações']);
+var consultaMenus=['Dashboard','Cadastros','Inquilinos','Contratos','Pagamentos','IPTU','Chamados','Financeiro','Gastos','Relatórios','Alertas'];
+if(typeof window!=='undefined')window.consultaMenus=consultaMenus;
+var adminMain=consultaMenus.concat(['Acessos','Configurações']);
 var ownerMain=['Dashboard','Alertas','Pagamentos','IPTU','Chamados','Relatórios'];
-var tenantMain=['Dashboard','Pagamentos','IPTU','Chamados'];
+var tenantMain=['Dashboard','Pagamentos','IPTU','Chamados','Alertas'];
 adminMenus=adminMain; ownerMenus=ownerMain; tenantMenus=tenantMain;
 // Liga cada tela simplificada à tabela correspondente no banco.
 tables.Pagamentos='cobrancas'; tables.Chamados='manutencoes'; tables.Cadastros='imoveis';
@@ -324,7 +325,7 @@ function openPropertyRegistration(existingTenants,presetTenantId){
 async function contractsPage(){
  await Promise.all([dbGet('contratos'),dbGet('imoveis'),dbGet('inquilinos')]);
  var cs=cache.contratos||[],ims=cache.imoveis||[],inqs=cache.inquilinos||[];
- var admin=currentRole==='admin',api=window.MatosContractFiles;
+ var admin=Boolean(matosIsSuperAdmin),api=window.MatosContractFiles;
  var docs=api?await api.list():[],docsByContract={};
  docs.forEach(function(d){if(!docsByContract[d.contrato_id])docsByContract[d.contrato_id]=[];docsByContract[d.contrato_id].push(d)});
  var rows=cs.map(function(c){
@@ -548,7 +549,7 @@ async function simpleReports(){
 // Centraliza cadastros técnicos e configurações administrativas.
 // Os cartões de Configurações usam o módulo vivo, nunca uma cópia de innerHTML:
 // copiar HTML descarta eventos de pesquisa, edição, exclusão e formulários.
-var settingsSections=['Imóveis','Inquilinos','Contratos','Proprietários','Acessos'];
+var settingsSections=['Imóveis','Inquilinos','Contratos','Proprietários','Acessos','Minha senha'];
 var settingsActive=null;
 var settingsRenderId=0;
 var settingsCards=[
@@ -556,10 +557,11 @@ var settingsCards=[
  ['Inquilinos','Dados dos locatários, contatos e documentos','users'],
  ['Contratos','Prazos, reajustes, garantias e valores','file-text'],
  ['Proprietários','Dados cadastrais, telefone, repasses e contato','user-round'],
- ['Acessos','Login por telefone ou e-mail, permissões e senhas','shield-check']
+ ['Acessos','Login por telefone ou e-mail, permissões e senhas','shield-check'],
+ ['Minha senha','Alterar minha senha com confirmação da senha atual','key-round']
 ];
 async function settingsHub(){
- if(currentRole!=='admin'){E('content').innerHTML='<div class="notice err">Configurações disponíveis somente para administradores.</div>';return}
+ if(!matosIsSuperAdmin){E('content').innerHTML='<div class="notice err">Configurações reservadas ao responsável pelo sistema.</div>';return}
  settingsActive=null;page='Configurações';
  E('content').innerHTML='<div class="simple-toolbar"><div><h2>Configurações e cadastros</h2><p>Gerencie os dados estruturais e os acessos do Matos.</p></div></div>'
   +'<div class="settings-grid">'+settingsCards.map(function(item){
@@ -570,16 +572,17 @@ async function settingsHub(){
  })
 }
 async function openSettingsSection(section){
- if(currentRole!=='admin'||settingsSections.indexOf(section)<0)return;
+ if(!matosIsSuperAdmin||settingsSections.indexOf(section)<0)return;
  settingsActive=section;page=section;await load();
 }
 async function renderSettingsSection(){
- if(currentRole!=='admin'||settingsSections.indexOf(settingsActive)<0)return settingsHub();
+ if(!matosIsSuperAdmin||settingsSections.indexOf(settingsActive)<0)return settingsHub();
  var section=settingsActive,ticket=++settingsRenderId,C=E('content');
  if(!C)return;
  C.innerHTML='<div class="panel">Carregando '+esc(section)+'...</div>';
  try{
-  if(section==='Acessos')await accesses();
+  if(section==='Minha senha')await window.MatosMasterSecurity.passwordPanel();
+  else if(section==='Acessos')await accesses();
   else if(section==='Contratos')await contractsPage();
   else await modulePage();
   if(settingsActive!==section||page!==section||ticket!==settingsRenderId||E('content')!==C)return;
@@ -608,14 +611,14 @@ load=async function(){
  var C=E('content');if(!C)return;
  try{
   if(isMatosSectionPaused(page)){page='Dashboard';return shell()}
-  if(settingsActive&&page===settingsActive&&currentRole==='admin')return renderSettingsSection();
+  if(settingsActive&&page===settingsActive&&matosIsSuperAdmin)return renderSettingsSection();
   if(page==='Dashboard')return simpleDash();
   if(page==='Cadastros'&&(currentRole==='admin'||currentRole==='proprietario_consulta'))return cadastrosPage();
-  if(page==='Contratos'&&(currentRole==='admin'||currentRole==='proprietario_consulta'))return contractsPage();
+  if(page==='Contratos'&&(matosIsSuperAdmin||currentRole==='proprietario_consulta'))return contractsPage();
   if(page==='Pagamentos')return paymentsPage();
   if(page==='Chamados')return callsPage();
   if(page==='Relatórios')return simpleReports();
-  if(page==='Configurações'&&currentRole==='admin')return settingsHub();
+  if(page==='Configurações'&&matosIsSuperAdmin)return settingsHub();
   return originalLoad.apply(this,arguments)
  }catch(e){C.innerHTML='<div class="notice err">'+esc(e.message)+'</div>'}
 };window.load=load;

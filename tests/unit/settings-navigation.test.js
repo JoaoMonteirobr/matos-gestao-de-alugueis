@@ -13,6 +13,7 @@ function sandbox(role = 'admin') {
   const ctx = {
     document: dom.window.document,
     currentRole: role,
+    matosIsSuperAdmin:role==='admin',
     page: 'Configurações',
     cache: {},
     tables: {},
@@ -62,12 +63,12 @@ function sandbox(role = 'admin') {
   return { ctx, counts, dom };
 }
 
-describe('Configurações: cinco cadastros funcionais', () => {
-  it('mostra os cinco cartões corretos sem usar cópias inertes de HTML', async () => {
+describe('Configurações: cadastros e segurança do responsável', () => {
+  it('mostra os cartões corretos sem usar cópias inertes de HTML', async () => {
     const { ctx, dom } = sandbox();
     await ctx.load();
     const sections = [...dom.window.document.querySelectorAll('[data-config]')].map((el) => el.dataset.config);
-    expect(sections).toEqual(['Imóveis', 'Inquilinos', 'Contratos', 'Proprietários', 'Acessos']);
+    expect(sections).toEqual(['Imóveis', 'Inquilinos', 'Contratos', 'Proprietários', 'Acessos', 'Minha senha']);
     expect(js).not.toContain("var html=E('content').innerHTML");
     expect(js).toContain("C.insertBefore(toolbar,C.firstChild)");
   });
@@ -93,7 +94,7 @@ describe('Configurações: cinco cadastros funcionais', () => {
     await new Promise((resolve) => setTimeout(resolve, 0));
     expect(ctx.page).toBe('Configurações');
     expect(ctx.MatosSettings.getActive()).toBeNull();
-    expect(dom.window.document.querySelectorAll('[data-config]').length).toBe(5);
+    expect(dom.window.document.querySelectorAll('[data-config]').length).toBe(6);
   });
 
   it.each(['Inquilinos', 'Contratos', 'Proprietários'])(
@@ -155,7 +156,7 @@ describe('Configurações: cinco cadastros funcionais', () => {
     expect(enhancements).toContain('if(current&&vals.indexOf(current)<0)vals.push(current)');
     expect(app2).toContain("'Imóveis':'imóvel'");
     expect(app2).toContain("'Contratos':'contrato'");
-    expect(html).toContain('/simple-ui.js?v=21');
+    expect(html).toContain('/simple-ui.js?v=22');
     expect(html).toContain('/app2.js?v=20261113-3');
     expect(html).toContain('/enhancements.js?v=20261108-2');
   });
