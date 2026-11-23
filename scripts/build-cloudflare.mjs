@@ -68,11 +68,15 @@ for (const [, , path] of references) {
 }
 if (!existsSync(join(output, 'sw.js'))) throw new Error('Falta sw.js para o aplicativo/notificações.');
 if (!existsSync(join(output, 'manifest.webmanifest'))) throw new Error('Falta manifest.webmanifest.');
+const warning = '<div role="note" aria-label="Ambiente de teste" style="position:fixed;right:10px;bottom:10px;z-index:2147483647;padding:7px 11px;border-radius:8px;background:#9a3412;color:#fff;font:600 12px/1.3 system-ui,sans-serif;box-shadow:0 3px 14px #0003;pointer-events:none">CÓPIA DE TESTE · DADOS COMPARTILHADOS</div>';
+const publishedHtml = html.replace('</head>', '<meta name="robots" content="noindex,nofollow"></head>').replace('<body>', '<body>' + warning);
+writeFileSync(join(output, 'index.html'), publishedHtml);
 writeFileSync(join(output, '_headers'), [
   '/*',
   '  X-Content-Type-Options: nosniff',
   '  Referrer-Policy: strict-origin-when-cross-origin',
   '  X-Frame-Options: DENY',
+  '  X-Robots-Tag: noindex, nofollow',
   '/index.html',
   '  Cache-Control: no-cache',
   '/sw.js',
