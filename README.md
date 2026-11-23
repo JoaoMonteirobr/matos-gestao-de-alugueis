@@ -11,6 +11,7 @@ Sistema web para administrar imóveis, proprietários, inquilinos, contratos, co
 - Código-fonte e histórico: GitHub, branch `main`.
 - Hospedagem e publicação: Vercel, projeto `gestao-alugueis-jp`.
 - Banco de dados e armazenamento privado: Supabase.
+- Segunda hospedagem opcional: [configuração da Cloudflare Pages](docs/CLOUDFLARE.md).
 - Validação: workflow `Quality` (testes, análise estática e E2E).
 - Após alterações na `main`, conferir o deployment de produção na Vercel e o funcionamento do domínio principal.
 

@@ -5,6 +5,7 @@
 coverage/
 debug.log
 node_modules/
+dist/
 playwright-report/
 supabase/.temp/
 test-results/

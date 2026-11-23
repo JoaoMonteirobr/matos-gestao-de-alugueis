@@ -22,6 +22,7 @@ jobs:
       - run: npm run arch:check
       - run: npm run test:coverage
       - run: npm run knip
+      - run: npm run build:cloudflare
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@04b047e8bb82a0c002c8312c1c880fbc6a999d45 # v5
         with:
