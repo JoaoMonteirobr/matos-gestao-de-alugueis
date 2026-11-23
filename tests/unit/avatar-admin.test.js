@@ -29,7 +29,7 @@ function mount(role='admin'){
  };
  const ctx={
   window:null,document:dom.window.document,
-  currentRole:role,currentProfile:{nome:'João',role,avatar_tipo:'inicial',avatar_emoji:null,avatar_path:null},
+  currentRole:role,canMatosOperate:()=>role==='admin'||role==='superadmin',currentProfile:{nome:'João',role,avatar_tipo:'inicial',avatar_emoji:null,avatar_path:null},
   session:{user:{id:uid,email:'joao@test.com'},access_token:'jwt-exemplo'},
   SUPA_URL:'https://fake.supabase.co',KEY:'sb_publishable_test',
   E:(id)=>dom.window.document.getElementById(id),esc:escapeHtml,
@@ -56,7 +56,7 @@ describe('Avatar do administrador — foto privada ou emoji',()=>{
    expect(test.ctx.MatosAvatar.pickerHtml()).toBe('');
    expect(test.ctx.MatosAvatar.headerHtml(test.ctx.currentProfile,'J')).toBe('J');
   }
-  expect(profile).toContain("currentRole==='admin'&&root.MatosAvatar?root.MatosAvatar.pickerHtml()");
+  expect(profile).toContain("canMatosOperate()&&root.MatosAvatar?root.MatosAvatar.pickerHtml()");
   expect(profile).toContain("root.MatosAvatar.mountPicker()");
  });
  it('substitui a inicial pelo emoji escolhido e persiste no banco sem expor senha',async()=>{
@@ -149,9 +149,9 @@ describe('Avatar do administrador — foto privada ou emoji',()=>{
   expect(css).toContain('.matos-avatar-emoji-grid');
   expect(css).toContain('@media(max-width:570px)');
   expect(css).toContain('@media(prefers-reduced-motion:reduce)');
-  expect(index).toContain('/avatar-admin.js?v=1');
+  expect(index).toContain('/avatar-admin.js?v=2');
   expect(index).toContain('/avatar-admin.css?v=1');
-  expect(index).toContain('/meu-perfil.js?v=2');
-  expect(index).toContain('/app1.js?v=20261113-5');
+  expect(index).toContain('/meu-perfil.js?v=3');
+  expect(index).toContain('/app1.js?v=20261122-1');
  });
 });

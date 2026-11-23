@@ -4,10 +4,10 @@
 // Define os menus visíveis para cada perfil de usuário.
 // Mesma navegação operacional para administrador e proprietário de consulta geral.
 // A diferença é a permissão: somente o administrador recebe ações de escrita.
-var consultaMenus=['Dashboard','Cadastros','Inquilinos','Contratos','Pagamentos','IPTU','Chamados','Financeiro','Gastos','Relatórios'];
-var adminMain=consultaMenus.concat(['Alertas','Acessos','Configurações']);
+var consultaMenus=['Dashboard','Cadastros','Inquilinos','Contratos','Pagamentos','IPTU','Chamados','Financeiro','Gastos','Relatórios','Alertas'];
+var adminMain=consultaMenus.concat(['Acessos','Configurações']);
 var ownerMain=['Dashboard','Alertas','Pagamentos','IPTU','Chamados','Relatórios'];
-var tenantMain=['Dashboard','Pagamentos','IPTU','Chamados'];
+var tenantMain=['Dashboard','Pagamentos','IPTU','Chamados','Alertas'];
 adminMenus=adminMain; ownerMenus=ownerMain; tenantMenus=tenantMain;
 // Liga cada tela simplificada à tabela correspondente no banco.
 tables.Pagamentos='cobrancas'; tables.Chamados='manutencoes'; tables.Cadastros='imoveis';
@@ -59,24 +59,24 @@ function groupedPaymentRows(rows,actions){
  }).join('')
 }
 function paymentRows(rows,actions){
- return rows.map(function(r){var canReverse=actions&&r.charge&&r.charge.id&&(Number(r.charge.valor_pago||0)>0||r.charge.data_pagamento);return '<tr><td><b>'+esc(r.tenant&&r.tenant.nome||'—')+'</b></td><td>'+esc(r.property&&r.property.nome||'—')+'</td><td>'+dateBR(r.due)+'</td><td>'+money(r.expected)+'</td><td>'+money(r.paid)+(r.charge&&r.charge.comprovante_path?' <button type="button" class="pay-clip" data-proof-id="'+esc(r.charge.id)+'" title="Visualizar comprovante" aria-label="Visualizar comprovante de '+esc(r.tenant&&r.tenant.nome||'pagamento')+'">Ver comprovante</button>':'')+'</td><td>'+st(r.status)+'</td>'+(actions?'<td><div class="payment-row-actions"><button type="button" class="row-primary" data-pay="'+esc(r.contract.id)+'">'+(r.status==='pago'?'Editar':'Informar pagamento')+'</button>'+(canReverse?'<button type="button" class="payment-reverse-btn" data-reverse-id="'+esc(r.charge.id)+'" aria-label="Excluir pagamento de '+esc(r.tenant&&r.tenant.nome||'inquilino')+'">Excluir pagamento</button>':'')+'</div></td>':'')+'</tr>'}).join('')
+ return rows.map(function(r){var canReverse=actions&&isMatosSuper()&&r.charge&&r.charge.id&&(Number(r.charge.valor_pago||0)>0||r.charge.data_pagamento);return '<tr><td><b>'+esc(r.tenant&&r.tenant.nome||'—')+'</b></td><td>'+esc(r.property&&r.property.nome||'—')+'</td><td>'+dateBR(r.due)+'</td><td>'+money(r.expected)+'</td><td>'+money(r.paid)+(r.charge&&r.charge.comprovante_path?' <button type="button" class="pay-clip" data-proof-id="'+esc(r.charge.id)+'" title="Visualizar comprovante" aria-label="Visualizar comprovante de '+esc(r.tenant&&r.tenant.nome||'pagamento')+'">Ver comprovante</button>':'')+'</td><td>'+st(r.status)+'</td>'+(actions?'<td><div class="payment-row-actions"><button type="button" class="row-primary" data-pay="'+esc(r.contract.id)+'">'+(r.status==='pago'?'Editar':'Informar pagamento')+'</button>'+(canReverse?'<button type="button" class="payment-reverse-btn" data-reverse-id="'+esc(r.charge.id)+'" aria-label="Excluir pagamento de '+esc(r.tenant&&r.tenant.nome||'inquilino')+'">Excluir pagamento</button>':'')+'</div></td>':'')+'</tr>'}).join('')
 }
 // Exibe os aluguéis previstos, pagos e pendentes do mês selecionado.
 async function paymentsPage(){
  var k=window._simpleMonth||isoMonth(),rows=await ledgerData(k);window._simpleMonth=k;
- var manual=currentRole==='admin'?'<button id="quickPayment" class="btn primary">⚡ Pagamento rápido</button><button id="manualPayment" class="btn secondary">+ Adicionar pagamento</button>':'';
- E('content').innerHTML='<div class="simple-toolbar"><div><h2>Pagamentos</h2><p>Consulte recebimentos e comprovantes por competência. Apenas o administrador pode registrar pagamentos.</p></div><div style="display:flex;gap:8px;flex-wrap:wrap">'+monthPicker('paymentMonth',k)+manual+'</div></div>'+summaryCards(rows)+'<div class="panel simple-panel"><div class="panel-title"><h3>Aluguéis da competência</h3><span class="muted">'+rows.length+' imóveis</span></div><div class="tablewrap"><table class="table"><thead><tr><th>Inquilino</th><th>Imóvel</th><th>Vencimento</th><th>Previsto</th><th>Recebido</th><th>Situação</th>'+(currentRole==='admin'?'<th>Ação</th>':'')+'</tr></thead><tbody>'+(groupedPaymentRows(rows,currentRole==='admin')||'<tr><td colspan="7" class="empty">Nenhum contrato vinculado a esta competência. Use <b>Adicionar pagamento</b> para registrar manualmente.</td></tr>')+'</tbody></table></div></div>';
+ var manual=canMatosOperate()?'<button id="quickPayment" class="btn primary">⚡ Pagamento rápido</button><button id="manualPayment" class="btn secondary">+ Adicionar pagamento</button>':'';
+ E('content').innerHTML='<div class="simple-toolbar"><div><h2>Pagamentos</h2><p>Consulte recebimentos e comprovantes por competência. Apenas o administrador pode registrar pagamentos.</p></div><div style="display:flex;gap:8px;flex-wrap:wrap">'+monthPicker('paymentMonth',k)+manual+'</div></div>'+summaryCards(rows)+'<div class="panel simple-panel"><div class="panel-title"><h3>Aluguéis da competência</h3><span class="muted">'+rows.length+' imóveis</span></div><div class="tablewrap"><table class="table"><thead><tr><th>Inquilino</th><th>Imóvel</th><th>Vencimento</th><th>Previsto</th><th>Recebido</th><th>Situação</th>'+(canMatosOperate()?'<th>Ação</th>':'')+'</tr></thead><tbody>'+(groupedPaymentRows(rows,canMatosOperate())||'<tr><td colspan="7" class="empty">Nenhum contrato vinculado a esta competência. Use <b>Adicionar pagamento</b> para registrar manualmente.</td></tr>')+'</tbody></table></div></div>';
  E('paymentMonth').onchange=function(){window._simpleMonth=this.value;paymentsPage()};
  if(E('quickPayment'))E('quickPayment').onclick=function(){openQuickPayment(k)};
  if(E('manualPayment'))E('manualPayment').onclick=function(){openManualPayment(k)};
  Array.prototype.forEach.call(document.querySelectorAll('[data-pay]'),function(b){b.onclick=function(){var r=rows.find(function(x){return x.contract.id===b.dataset.pay});openPayment(r,k)}})
  Array.prototype.forEach.call(document.querySelectorAll('[data-proof-id]'),function(b){b.onclick=function(){var r=rows.find(function(x){return x.charge&&x.charge.id===b.dataset.proofId});if(r)openProof(r)}})
- Array.prototype.forEach.call(document.querySelectorAll('[data-reverse-id]'),function(b){b.onclick=function(){if(currentRole!=='admin')return;var r=rows.find(function(x){return x.charge&&x.charge.id===b.dataset.reverseId});if(r)openReversePayment(r,k)}})
+ Array.prototype.forEach.call(document.querySelectorAll('[data-reverse-id]'),function(b){b.onclick=function(){if(!isMatosSuper())return;var r=rows.find(function(x){return x.charge&&x.charge.id===b.dataset.reverseId});if(r)openReversePayment(r,k)}})
 }
 // Reverte SOMENTE o recebimento: mantém a cobrança e registra o motivo na auditoria.
 // O servidor exige perfil administrador e processa tudo em uma transação.
 function openReversePayment(row,k){
- if(currentRole!=='admin'||!row||!row.charge||!row.charge.id)return;
+ if(!isMatosSuper()||!row||!row.charge||!row.charge.id)return;
  var charge=row.charge;
  if(!(Number(charge.valor_pago||0)>0||charge.data_pagamento))return;
  if(E('reversePaymentModal'))E('reversePaymentModal').remove();
@@ -99,7 +99,7 @@ function openReversePayment(row,k){
   var msg=E('reverseMsg'),why=reason.value.trim();
   if(why.length<8||why.length>240){msg.innerHTML='<div class="notice err">Informe um motivo de 8 a 240 caracteres.</div>';return}
   if(!E('reverseConfirm').checked){msg.innerHTML='<div class="notice err">Marque a confirmação para prosseguir.</div>';return}
-  if(currentRole!=='admin'){msg.innerHTML='<div class="notice err">Somente o administrador pode excluir pagamentos.</div>';return}
+  if(!isMatosSuper()){msg.innerHTML='<div class="notice err">Somente o gestor pode excluir pagamentos.</div>';return}
   btn.disabled=true;E('reverseCancel').disabled=true;E('reverseClose').disabled=true;
   msg.innerHTML='<div class="notice">Excluindo o lançamento e atualizando o financeiro...</div>';
   try{
@@ -120,7 +120,7 @@ function openReversePayment(row,k){
  reason.focus();
 }
 async function openQuickPayment(k){
- if(currentRole!=='admin')return;
+ if(!canMatosOperate())return;
  await Promise.all([dbGet('inquilinos'),dbGet('imoveis'),dbGet('contratos'),dbGet('cobrancas')]);
  var inqs=cache.inquilinos||[],ims=cache.imoveis||[],cts=cache.contratos||[],charges=cache.cobrancas||[],today=new Date().toISOString().slice(0,10);
  var options=ims.map(function(im){var ct=cts.find(function(c){return c.imovel_id===im.id&&activeInMonth(c,k)})||cts.find(function(c){return c.imovel_id===im.id}),tid=ct&&ct.inquilino_id||im.inquilino_id,t=inqs.find(function(x){return x.id===tid}),rent=Number(ct&&ct.aluguel_atual||im.aluguel_base||0);return '<option value="'+im.id+'" data-tenant="'+esc(tid||'')+'" data-rent="'+rent+'">'+esc(im.nome||im.endereco||'Imóvel')+(t?' — '+esc(t.nome):'')+'</option>'}).join('');
@@ -130,7 +130,7 @@ async function openQuickPayment(k){
  E('saveQuickPayment').onclick=async function(){var msg=E('formmsg'),property=E('qp_property').value,date=E('qp_date').value,value=Number(E('qp_value').value||0);if(!property||!date||value<=0){msg.innerHTML='<div class="notice err">Selecione o imóvel/inquilino e informe data e valor.</div>';return}var im=ims.find(function(x){return x.id===property}),ct=cts.find(function(c){return c.imovel_id===property&&activeInMonth(c,k)})||cts.find(function(c){return c.imovel_id===property}),tenant=ct&&ct.inquilino_id||im&&im.inquilino_id||null,rent=Number(ct&&ct.aluguel_atual||im&&im.aluguel_base||value),old=paymentFor(ct&&ct.id,k,charges,property);if(old&&!confirm('Já existe um pagamento lançado para este imóvel nesta competência. Deseja atualizar o lançamento existente?'))return;var obj={inquilino_id:tenant,imovel_id:property,contrato_id:ct?ct.id:null,competencia:k+'-01',vencimento:ct?dueDate(ct,k):k+'-05',aluguel:rent,outros_encargos:Number(old&&old.outros_encargos||0),valor_pago:value,data_pagamento:date,forma_pagamento:'pix',status:value>=rent?'pago':'pendente',observacoes:old&&old.observacoes||'Pagamento registrado pelo lançamento rápido.'};try{msg.innerHTML='<div class="notice">Registrando...</div>';await savePaymentWithProof(obj,old,E('qp_proof').files&&E('qp_proof').files[0]);cache.cobrancas=null;close();paymentsPage()}catch(e){msg.innerHTML='<div class="notice err">'+esc(e.message)+'</div>'}}
 }
 async function openManualPayment(k){
- if(currentRole!=='admin')return;
+ if(!canMatosOperate())return;
  await Promise.all([dbGet('inquilinos'),dbGet('imoveis'),dbGet('contratos'),dbGet('cobrancas')]);
  var inqs=cache.inquilinos||[],ims=cache.imoveis||[],cts=cache.contratos||[],charges=cache.cobrancas||[],today=new Date().toISOString().slice(0,10);
  document.body.insertAdjacentHTML('beforeend','<div class="modalbg" id="modal"><div class="modal simple-modal"><div class="modalhead"><div><h2>Adicionar pagamento</h2><small>Registre o recebimento mesmo sem contrato listado na competência</small></div><button id="closemodal" class="close">×</button></div><div class="modalbody"><div id="formmsg"></div><div class="formgrid"><div class="field full"><span class="lbl">Inquilino *</span><select id="mp_tenant" class="inp"><option value="">Selecione</option>'+inqs.map(function(x){return '<option value="'+x.id+'">'+esc(x.nome)+'</option>'}).join('')+'</select></div><div class="field full"><span class="lbl">Imóvel *</span><select id="mp_property" class="inp"><option value="">Selecione</option>'+ims.map(function(x){return '<option value="'+x.id+'">'+esc(x.nome||x.endereco||'Imóvel')+'</option>'}).join('')+'</select></div><div class="field"><span class="lbl">Valor recebido *</span><input id="mp_value" class="inp" type="number" min="0.01" step="0.01"></div><div class="field"><span class="lbl">Data do pagamento *</span><input id="mp_date" class="inp" type="date" value="'+today+'"></div><div class="field"><span class="lbl">Vencimento</span><input id="mp_due" class="inp" type="date" value="'+k+'-10"></div><div class="field"><span class="lbl">Forma de pagamento</span><select id="mp_method" class="inp"><option value="pix">PIX</option><option value="transferencia">Transferência</option><option value="dinheiro">Dinheiro</option><option value="boleto">Boleto</option><option value="outro">Outro</option></select></div><div class="field full"><span class="lbl">Comprovante (opcional)</span><input id="mp_proof" class="inp pay-proof-select" type="file" accept="image/jpeg,image/png,image/webp,application/pdf"><small>Foto ou PDF, até 10 MB. Caso não tenha comprovante, deixe vazio.</small></div><div class="field full"><span class="lbl">Observação</span><textarea id="mp_note" class="inp"></textarea></div></div></div><div class="modalfoot"><button id="cancelmodal" class="btn secondary">Cancelar</button><button id="saveManualPayment" class="btn primary">Salvar pagamento</button></div></div></div>');
@@ -141,7 +141,7 @@ async function openManualPayment(k){
 }
 // Abre o formulário usado pelo administrador para registrar um pagamento.
 function openPayment(r,k){
- if(currentRole!=='admin')return;
+ if(!canMatosOperate())return;
  var old=r.charge||{},today=new Date().toISOString().slice(0,10),virtual=String(r.contract.id||'').indexOf('property:')===0,method=old.forma_pagamento||'pix';
  var methods=PAY_METHODS.map(function(m){return '<option value="'+m[0]+'"'+(m[0]===method?' selected':'')+'>'+m[1]+'</option>'}).join('');
  var current=old.comprovante_path?'<div class="pay-proof-current"><button type="button" id="pay_proof_open" class="btn secondary">📎 Ver comprovante atual</button><small>'+esc(old.comprovante_nome||'')+'</small></div>':'';
@@ -300,7 +300,7 @@ async function cadastrosPage(){
   }).join('');
   return '<section class="panel simple-panel property-address-group"><div class="panel-title"><h3>'+esc(group.label)+'</h3><span class="muted">'+groupCount(group)+' unidades</span></div>'+sections+'</section>'
  }).join('');
- E('content').innerHTML='<div class="simple-toolbar"><div><h2>Cadastros</h2><p>Imóveis agrupados por endereço, apartamentos e unidades comerciais.</p></div>'+(currentRole==='admin'?'<button id="newProperty" class="btn primary">+ Cadastrar imóvel</button>':'<span class="notice access-readonly">Somente consulta</span>')+'</div>'+(panels||'<div class="panel simple-panel"><div class="empty">Nenhum imóvel cadastrado.</div></div>');
+ E('content').innerHTML='<div class="simple-toolbar"><div><h2>Cadastros</h2><p>Imóveis agrupados por endereço, apartamentos e unidades comerciais.</p></div>'+(canMatosOperate()?'<button id="newProperty" class="btn primary">+ Cadastrar imóvel</button>':'<span class="notice access-readonly">Somente consulta</span>')+'</div>'+(panels||'<div class="panel simple-panel"><div class="empty">Nenhum imóvel cadastrado.</div></div>');
  if(E('newProperty'))E('newProperty').onclick=function(){openPropertyRegistration(inqs)}
 }
 // Abre o cadastro integrado: imóvel e, se ocupado, dados obrigatórios do inquilino.
@@ -324,7 +324,7 @@ function openPropertyRegistration(existingTenants,presetTenantId){
 async function contractsPage(){
  await Promise.all([dbGet('contratos'),dbGet('imoveis'),dbGet('inquilinos')]);
  var cs=cache.contratos||[],ims=cache.imoveis||[],inqs=cache.inquilinos||[];
- var admin=currentRole==='admin',api=window.MatosContractFiles;
+ var admin=isMatosSuper(),api=window.MatosContractFiles;
  var docs=api?await api.list():[],docsByContract={};
  docs.forEach(function(d){if(!docsByContract[d.contrato_id])docsByContract[d.contrato_id]=[];docsByContract[d.contrato_id].push(d)});
  var rows=cs.map(function(c){
@@ -482,14 +482,14 @@ function bindIptuDashboardCard(records){
 // Resume pagamentos, pendências, chamados e contratos próximos do término.
 async function simpleDash(){
  var k=window._simpleMonth||isoMonth(),datasets=await Promise.all([ledgerData(k),dbGet('manutencoes'),dbGet('iptu')]),rows=datasets[0],maint=datasets[1],annualIptu=datasets[2],open=(maint||[]).filter(function(x){return ['concluido','cancelado'].indexOf(x.status)<0}).length,contracts=cache.contratos||[],ims=cache.imoveis||[],inqs=cache.inquilinos||[],ending=contracts.filter(function(x){var d=daysUntil(x.data_fim);return x.status==='ativo'&&d>=0&&d<=60}).sort(function(a,b){return String(a.data_fim).localeCompare(String(b.data_fim))});window._simpleMonth=k;
- E('content').innerHTML='<div class="simple-toolbar"><div><h2>Visão geral</h2><p>Acompanhe recebimentos, pendências e operação em um único lugar.</p></div>'+monthPicker('dashMonth',k)+'</div>'+summaryCards(rows)+overview2026()+iptuDashboardCard(annualIptu)+'<div class="simple-grid"><div class="panel simple-panel"><div class="panel-title"><h3>Pendências que precisam de atenção</h3><button class="linkmini" onclick="goQuick(\'Pagamentos\')">Ver pagamentos →</button></div><div class="tablewrap"><table class="table"><thead><tr><th>Inquilino</th><th>Imóvel</th><th>Vencimento</th><th>Pendente</th></tr></thead><tbody>'+rows.filter(function(r){return r.status==='pendente'}).slice(0,8).map(function(r){return '<tr><td>'+esc(r.tenant&&r.tenant.nome||'—')+'</td><td>'+esc(r.property&&r.property.nome||'—')+'</td><td>'+dateBR(r.due)+'</td><td><b>'+money(r.pending)+'</b></td></tr>'}).join('')+'</tbody></table></div></div><div class="panel simple-panel action-panel"><h3>Operação</h3>'+(currentRole==='admin'?'<button onclick="goQuick(\'Pagamentos\')"><b>Informar pagamento</b><span>Registrar recebimento de aluguel</span></button>':'<button onclick="goQuick(\'Pagamentos\')"><b>Consultar pagamentos</b><span>Ver valores e comprovantes</span></button>')+'<button onclick="goQuick(\'IPTU\')"><b>IPTU</b><span>Valores e referências anuais</span></button><button onclick="goQuick(\'Chamados\')"><b>Chamados <em>'+open+'</em></b><span>Acompanhar solicitações dos inquilinos</span></button><button onclick="goQuick(\'Relatórios\')"><b>Relatório mensal</b><span>Pagos e pendentes para cobrança</span></button></div></div>';
+ E('content').innerHTML='<div class="simple-toolbar"><div><h2>Visão geral</h2><p>Acompanhe recebimentos, pendências e operação em um único lugar.</p></div>'+monthPicker('dashMonth',k)+'</div>'+summaryCards(rows)+overview2026()+iptuDashboardCard(annualIptu)+'<div class="simple-grid"><div class="panel simple-panel"><div class="panel-title"><h3>Pendências que precisam de atenção</h3><button class="linkmini" onclick="goQuick(\'Pagamentos\')">Ver pagamentos →</button></div><div class="tablewrap"><table class="table"><thead><tr><th>Inquilino</th><th>Imóvel</th><th>Vencimento</th><th>Pendente</th></tr></thead><tbody>'+rows.filter(function(r){return r.status==='pendente'}).slice(0,8).map(function(r){return '<tr><td>'+esc(r.tenant&&r.tenant.nome||'—')+'</td><td>'+esc(r.property&&r.property.nome||'—')+'</td><td>'+dateBR(r.due)+'</td><td><b>'+money(r.pending)+'</b></td></tr>'}).join('')+'</tbody></table></div></div><div class="panel simple-panel action-panel"><h3>Operação</h3>'+(canMatosOperate()?'<button onclick="goQuick(\'Pagamentos\')"><b>Informar pagamento</b><span>Registrar recebimento de aluguel</span></button>':'<button onclick="goQuick(\'Pagamentos\')"><b>Consultar pagamentos</b><span>Ver valores e comprovantes</span></button>')+'<button onclick="goQuick(\'IPTU\')"><b>IPTU</b><span>Valores e referências anuais</span></button><button onclick="goQuick(\'Chamados\')"><b>Chamados <em>'+open+'</em></b><span>Acompanhar solicitações dos inquilinos</span></button><button onclick="goQuick(\'Relatórios\')"><b>Relatório mensal</b><span>Pagos e pendentes para cobrança</span></button></div></div>';
  E('content').insertAdjacentHTML('beforeend','<div class="panel simple-panel contract-dashboard"><div class="panel-title"><h3>Contratos próximos do término</h3><button class="linkmini" onclick="goQuick(\'Contratos\')">Ver contratos →</button></div><p class="muted">Avisos exibidos com 60 dias de antecedência.</p><div class="tablewrap"><table class="table"><thead><tr><th>Imóvel</th><th>Inquilino</th><th>Término</th><th>Prazo</th></tr></thead><tbody>'+(ending.map(function(ct){var im=ims.find(function(x){return x.id===ct.imovel_id}),t=inqs.find(function(x){return x.id===ct.inquilino_id}),d=daysUntil(ct.data_fim);return '<tr><td>'+esc(im&&im.nome||'—')+'</td><td>'+esc(t&&t.nome||'—')+'</td><td><b>'+dateBR(ct.data_fim)+'</b></td><td><span class="badge yellow">'+d+' dias</span></td></tr>'}).join('')||'<tr><td colspan="4" class="empty">Nenhum contrato termina nos próximos 60 dias.</td></tr>')+'</tbody></table></div></div>');E('dashMonth').onchange=function(){window._simpleMonth=this.value;simpleDash()};bindIptuDashboardCard(annualIptu)
 }
 // Exibe os chamados de manutenção e solicitações dos inquilinos.
 async function callsPage(){
  var rows=await dbGet('manutencoes');if(!cache.imoveis)await dbGet('imoveis');if(!cache.inquilinos)await dbGet('inquilinos');
- var body=rows.map(function(r){var im=(cache.imoveis||[]).find(function(x){return x.id===r.imovel_id}),ten=(cache.inquilinos||[]).find(function(x){return x.id===r.inquilino_id});return '<tr><td>'+dateBR(r.data_abertura)+'</td><td>'+esc(ten&&ten.nome||'—')+'</td><td>'+esc(im&&im.nome||'—')+'</td><td>'+esc(r.categoria||'—')+'</td><td>'+esc(r.descricao||'—')+'</td><td>'+st(r.status||'aberto')+'</td>'+(currentRole==='admin'?'<td><button class="row-primary" data-call="'+r.id+'">Abrir</button></td>':'')+'</tr>'}).join('');
- E('content').innerHTML='<div class="simple-toolbar"><div><h2>Chamados</h2><p>Solicitações dos inquilinos e acompanhamento da solução.</p></div>'+(currentRole==='inquilino'?'<button id="newcall" class="btn primary">+ Novo chamado</button>':'')+'</div><div class="panel simple-panel"><div class="tablewrap"><table class="table"><thead><tr><th>Abertura</th><th>Inquilino</th><th>Imóvel</th><th>Categoria</th><th>Descrição</th><th>Situação</th>'+(currentRole==='admin'?'<th>Ação</th>':'')+'</tr></thead><tbody>'+(body||'<tr><td colspan="7" class="empty">Nenhum chamado registrado.</td></tr>')+'</tbody></table></div></div>';
+ var body=rows.map(function(r){var im=(cache.imoveis||[]).find(function(x){return x.id===r.imovel_id}),ten=(cache.inquilinos||[]).find(function(x){return x.id===r.inquilino_id});return '<tr><td>'+dateBR(r.data_abertura)+'</td><td>'+esc(ten&&ten.nome||'—')+'</td><td>'+esc(im&&im.nome||'—')+'</td><td>'+esc(r.categoria||'—')+'</td><td>'+esc(r.descricao||'—')+'</td><td>'+st(r.status||'aberto')+'</td>'+(isMatosSuper()?'<td><button class="row-primary" data-call="'+r.id+'">Abrir</button></td>':'')+'</tr>'}).join('');
+ E('content').innerHTML='<div class="simple-toolbar"><div><h2>Chamados</h2><p>Solicitações dos inquilinos e acompanhamento da solução.</p></div>'+(currentRole==='inquilino'?'<button id="newcall" class="btn primary">+ Novo chamado</button>':'')+'</div><div class="panel simple-panel"><div class="tablewrap"><table class="table"><thead><tr><th>Abertura</th><th>Inquilino</th><th>Imóvel</th><th>Categoria</th><th>Descrição</th><th>Situação</th>'+(isMatosSuper()?'<th>Ação</th>':'')+'</tr></thead><tbody>'+(body||'<tr><td colspan="7" class="empty">Nenhum chamado registrado.</td></tr>')+'</tbody></table></div></div>';
  if(E('newcall'))E('newcall').onclick=function(){openForm('Manutenção',null)};
  Array.prototype.forEach.call(document.querySelectorAll('[data-call]'),function(b){b.onclick=function(){var r=rows.find(function(x){return x.id===b.dataset.call});openForm('Manutenção',r)}})
 }
@@ -556,25 +556,26 @@ var settingsCards=[
  ['Inquilinos','Dados dos locatários, contatos e documentos','users'],
  ['Contratos','Prazos, reajustes, garantias e valores','file-text'],
  ['Proprietários','Dados cadastrais, telefone, repasses e contato','user-round'],
- ['Acessos','Login por telefone ou e-mail, permissões e senhas','shield-check']
+ ['Acessos','Login por telefone ou e-mail, permissões e senhas','shield-check'],
+ ['Minha senha','Alterar minha própria senha de acesso','key-round']
 ];
 async function settingsHub(){
- if(currentRole!=='admin'){E('content').innerHTML='<div class="notice err">Configurações disponíveis somente para administradores.</div>';return}
+ if(!isMatosSuper()){E('content').innerHTML='<div class="notice err">Configurações restritas ao gestor do sistema.</div>';return}
  settingsActive=null;page='Configurações';
  E('content').innerHTML='<div class="simple-toolbar"><div><h2>Configurações e cadastros</h2><p>Gerencie os dados estruturais e os acessos do Matos.</p></div></div>'
   +'<div class="settings-grid">'+settingsCards.map(function(item){
    return '<button type="button" class="settings-card" data-config="'+esc(item[0])+'" aria-label="Abrir '+esc(item[0])+'"><b>'+esc(item[0])+'</b><span>'+esc(item[1])+'</span><i aria-hidden="true">→</i></button>'
   }).join('')+'</div><p class="muted settings-hint">Selecione uma área para consultar, cadastrar ou editar. Todas as alterações permanecem protegidas pelo seu acesso de administrador.</p>';
  Array.prototype.forEach.call(E('content').querySelectorAll('[data-config]'),function(button){
-  button.onclick=function(){openSettingsSection(button.dataset.config)}
+  button.onclick=function(){if(button.dataset.config==='Minha senha'){page='Meu perfil';shell();return}openSettingsSection(button.dataset.config)}
  })
 }
 async function openSettingsSection(section){
- if(currentRole!=='admin'||settingsSections.indexOf(section)<0)return;
+ if(!isMatosSuper()||settingsSections.indexOf(section)<0)return;
  settingsActive=section;page=section;await load();
 }
 async function renderSettingsSection(){
- if(currentRole!=='admin'||settingsSections.indexOf(settingsActive)<0)return settingsHub();
+ if(!isMatosSuper()||settingsSections.indexOf(settingsActive)<0)return settingsHub();
  var section=settingsActive,ticket=++settingsRenderId,C=E('content');
  if(!C)return;
  C.innerHTML='<div class="panel">Carregando '+esc(section)+'...</div>';
@@ -608,14 +609,14 @@ load=async function(){
  var C=E('content');if(!C)return;
  try{
   if(isMatosSectionPaused(page)){page='Dashboard';return shell()}
-  if(settingsActive&&page===settingsActive&&currentRole==='admin')return renderSettingsSection();
+  if(settingsActive&&page===settingsActive&&isMatosSuper())return renderSettingsSection();
   if(page==='Dashboard')return simpleDash();
-  if(page==='Cadastros'&&(currentRole==='admin'||currentRole==='proprietario_consulta'))return cadastrosPage();
-  if(page==='Contratos'&&(currentRole==='admin'||currentRole==='proprietario_consulta'))return contractsPage();
+  if(page==='Cadastros'&&(canMatosOperate()||currentRole==='proprietario_consulta'))return cadastrosPage();
+  if(page==='Contratos'&&(canMatosOperate()||currentRole==='proprietario_consulta'))return contractsPage();
   if(page==='Pagamentos')return paymentsPage();
   if(page==='Chamados')return callsPage();
   if(page==='Relatórios')return simpleReports();
-  if(page==='Configurações'&&currentRole==='admin')return settingsHub();
+  if(page==='Configurações'&&isMatosSuper())return settingsHub();
   return originalLoad.apply(this,arguments)
  }catch(e){C.innerHTML='<div class="notice err">'+esc(e.message)+'</div>'}
 };window.load=load;

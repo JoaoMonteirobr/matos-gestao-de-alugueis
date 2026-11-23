@@ -16,7 +16,7 @@ const scopedUser='bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
 const tenantUser='cccccccc-cccc-4ccc-8ccc-cccccccccccc';
 const adminUser='dddddddd-dddd-4ddd-8ddd-dddddddddddd';
 
-function createHarness(role='admin'){
+function createHarness(role='superadmin'){
  const dom=new JSDOM('<div id="content"></div>',{url:'https://matos.example'});
  const owners=[
   {id:owner1,nome:'Proprietária Exemplo',telefone:'68999991111'},
@@ -38,6 +38,7 @@ function createHarness(role='admin'){
   document:dom.window.document,
   window:null,
   currentRole:role,
+  isMatosSuper:()=>role==='superadmin',
   session:{access_token:'jwt-exemplo'},
   cache:{},
   crypto:dom.window.crypto,
@@ -181,7 +182,7 @@ describe('Gerenciamento de acessos — tela do administrador',()=>{
   expect(backend).toContain("normalizedBrazilMobile(linked.data.telefone)");
   expect(backend).toContain("role === 'proprietario_consulta'");
   expect(backend).not.toContain('serviceRole:');
-  expect(index).toContain('/access-management.js?v=1');
+  expect(index).toContain('/access-management.js?v=2');
   expect(index).toContain('/access-management.css?v=1');
  });
 });

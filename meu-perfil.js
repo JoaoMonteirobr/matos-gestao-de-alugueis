@@ -20,13 +20,13 @@ function passwordError(a,b){
 }
 root.MatosPerfil={cleanName:cleanName,nameError:nameError,passwordError:passwordError};
 
-function roleLabel(){return currentRole==='admin'?'Administrador':currentRole==='proprietario_consulta'?'Proprietário · consulta geral':currentRole==='proprietario'?'Proprietário':currentRole==='inquilino'?'Inquilino':'Usuário'}
+function roleLabel(){return isMatosSuper()?'Gestor do sistema':currentRole==='admin'?'Administrador':currentRole==='proprietario_consulta'?'Proprietário · consulta geral':currentRole==='proprietario'?'Proprietário':currentRole==='inquilino'?'Inquilino':'Usuário'}
 function loginLabel(){var p=currentProfile||{};return p.telefone_login||session&&session.user&&session.user.email||'—'}
 function currentName(){var n=cleanName(currentProfile&&currentProfile.nome);return n.indexOf('@')>=0?'':n}
 
 function profilePage(){
  E('content').innerHTML='<div class="simple-toolbar"><div><h2>Meu perfil</h2><p>Seu nome aparece na saudação e no topo do sistema.</p></div></div>'
- +(currentRole==='admin'&&root.MatosAvatar?root.MatosAvatar.pickerHtml():'')
+ +(canMatosOperate()&&root.MatosAvatar?root.MatosAvatar.pickerHtml():'')
  +'<div class="perfil-grid">'
  +'<div class="panel simple-panel"><div class="panel-title"><h3>Dados</h3></div>'
  +'<div id="pf_msg"></div>'
@@ -39,7 +39,7 @@ function profilePage(){
  +'<label class="lbl" for="pw_again">Repita a senha nova</label><input id="pw_again" class="inp" type="password" autocomplete="new-password">'
  +'<button id="pw_save" class="btn secondary" type="button">Trocar senha</button></div>'
  +'</div>';
- if(currentRole==='admin'&&root.MatosAvatar)root.MatosAvatar.mountPicker();
+ if(canMatosOperate()&&root.MatosAvatar)root.MatosAvatar.mountPicker();
  E('pf_save').onclick=saveName;
  E('pw_save').onclick=savePassword;
  E('pf_nome').onkeydown=function(e){if(e.key==='Enter')saveName()};
@@ -57,6 +57,7 @@ async function saveName(){
 }
 async function savePassword(){
  var msg=E('pw_msg'),btn=E('pw_save'),a=E('pw_new').value,b=E('pw_again').value,err=passwordError(a,b);
+ if(isMatosSuper()&&a.length<12)err='A senha do gestor deve ter pelo menos 12 caracteres.';
  if(err){msg.innerHTML='<div class="notice err">'+esc(err)+'</div>';return}
  btn.disabled=true;msg.innerHTML='<div class="notice">Trocando a senha...</div>';
  try{
@@ -68,7 +69,7 @@ async function savePassword(){
 }
 
 // ---------- Menu e roteamento ----------
-[adminMenus,ownerMenus,tenantMenus,root.consultaMenus].forEach(function(list){if(list&&list.indexOf(PAGE)<0)list.push(PAGE)});
+[adminMenus,ownerMenus,tenantMenus,root.consultaMenus,root.operadorMenus].forEach(function(list){if(list&&list.indexOf(PAGE)<0)list.push(PAGE)});
 var prevIcon=root.navIcon;navIcon=function(x){return x===PAGE?'☺':prevIcon(x)};root.navIcon=navIcon;
 var prevLoad=root.load;
 load=async function(){if(page===PAGE)return profilePage();return prevLoad.apply(this,arguments)};

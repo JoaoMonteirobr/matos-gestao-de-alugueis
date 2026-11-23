@@ -158,7 +158,7 @@ window.getMatosPushDiagnostics=async function(){
 };
 window.getMatosPushServerStatus=async function(){
  if(!session||!session.access_token)throw new Error('Sessão não autenticada.');
- if(currentRole!=='admin')return {configured:false,notAuthorized:true};
+ if(!isMatosSuper())return {configured:false,notAuthorized:true};
  const response=await fetch(SUPA_URL+'/functions/v1/push-dispatch',{
   method:'POST',headers:headers(),body:JSON.stringify({action:'diagnostic'})
  });
@@ -168,7 +168,7 @@ window.getMatosPushServerStatus=async function(){
 };
 window.testMatosRemotePush=async function(){
  if(!session||!session.access_token)throw new Error('Faça login para testar.');
- if(currentRole!=='admin')throw new Error('Teste remoto disponível somente ao administrador.');
+ if(!isMatosSuper())throw new Error('Teste remoto disponível somente ao administrador.');
  const current=await window.getMatosPushDiagnostics();
  if(!current.active)throw new Error('Ative as notificações neste aparelho antes do teste remoto.');
  const deviceToken=localStorage.getItem('matos_push_token');

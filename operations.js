@@ -23,7 +23,7 @@ window.gerarCobrancasMes=gerarCobrancasMes;
 var oldModule=window.modulePage;
 window.modulePage=async function(){
  await oldModule();
- if(page==='Cobranças'&&currentRole==='admin'){
+ if(page==='Cobranças'&&isMatosSuper()){
    var c=E('content');
    if(c)c.insertAdjacentHTML('afterbegin','<div class="panel" style="margin-bottom:14px"><div class="panel-title"><h3>Automação mensal de cobranças</h3></div><p class="muted">Gera uma cobrança para cada contrato ativo no mês selecionado. Cobranças já existentes para o mesmo contrato e mês não são duplicadas.</p><div class="toolbar" style="justify-content:flex-start"><input id="gerar_mes" class="inp" type="month" value="'+mesAtual()+'" style="max-width:190px"><button class="btn primary" type="button" onclick="gerarCobrancasMes()">Gerar cobranças do mês</button></div><div id="gerar_msg"></div></div>');
  }
@@ -45,7 +45,7 @@ window.load=async function(){if(page==='Histórico')return historicoPage();retur
 var oldDash=window.dash;
 window.dash=async function(){
  await oldDash();
- if(currentRole==='admin'){
+ if(isMatosSuper()){
    var C=E('content');
    if(C)C.insertAdjacentHTML('afterbegin','<div class="notice" style="margin-bottom:14px"><b>Fluxo automatizado ativo:</b> contratos ativos podem gerar as cobranças mensais em lote. Ao marcar uma cobrança como paga, a entrada correspondente é sincronizada automaticamente no Financeiro. Todas as alterações relevantes passam a ser registradas no Histórico.</div>');
  }

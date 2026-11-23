@@ -7,7 +7,7 @@ const TENANT='30000000-0000-4000-8000-000000000003';
 const DOCUMENT='40000000-0000-4000-8000-000000000004';
 const samplePdf={name:'Contrato assinado.pdf',mimeType:'application/pdf',buffer:Buffer.from('%PDF-1.4\n1 0 obj\n<<>>\nendobj\n%%EOF')};
 
-async function openContracts(page,role='admin'){
+async function openContracts(page,role='superadmin'){
  test.skip(Boolean(process.env.PLAYWRIGHT_BASE_URL)||process.env.MATOS_E2E_EXTERNAL==='1',
   'Fluxo de contratos usa dados simulados somente no build local, sem alterar produção.');
  const now=[{

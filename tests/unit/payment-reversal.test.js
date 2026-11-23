@@ -20,7 +20,7 @@ function demoCharge(value = 1000) {
   };
 }
 
-function runtime(role = 'admin', reject = false) {
+function runtime(role = 'superadmin', reject = false) {
   const dom = new JSDOM('<html><body></body></html>');
   const request = vi.fn(reject
     ? async () => { throw new Error('Estorno indisponível'); }
@@ -28,7 +28,7 @@ function runtime(role = 'admin', reject = false) {
   const paymentsPage = vi.fn(async () => {});
   const cache = { cobrancas: ['pagamento-antigo'], financeiro: ['receita-antiga'] };
   const ctx = {
-    document: dom.window.document, currentRole: role,
+    document: dom.window.document, currentRole: role, isMatosSuper:()=>role==='superadmin',
     E: (id) => dom.window.document.getElementById(id),
     esc: (v) => String(v ?? '').replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('"', '&quot;'),
     money: (v) => 'R$ ' + Number(v).toFixed(2),
@@ -52,6 +52,7 @@ function tableRow(actions, charge = demoCharge().charge) {
     dateBR: (v) => v,
     money: (v) => 'R$ ' + Number(v).toFixed(2),
     st: (s) => s,
+    isMatosSuper:()=>true,
   };
   const render = vm.runInNewContext(ui.slice(start, end) + '\npaymentRows;', ctx);
   return render([{ ...demoCharge(), charge }], actions);
@@ -64,7 +65,7 @@ describe('excluir pagamento — estorno seguro', () => {
     expect(tableRow(false)).not.toContain('data-reverse-id');
     expect(tableRow(true, { id: 'charge-123', valor_pago: 0, data_pagamento: null })).not.toContain('data-reverse-id');
     expect(tableRow(true, { id: 'charge-123', valor_pago: 500, data_pagamento: null })).toContain('data-reverse-id');
-    expect(ui).toContain("if(currentRole!=='admin')return;var r=rows.find");
+    expect(ui).toContain("if(!isMatosSuper())return;var r=rows.find");
   });
 
   it('não permite abrir o modal no perfil proprietário ou inquilino', () => {
@@ -105,7 +106,7 @@ describe('excluir pagamento — estorno seguro', () => {
   });
 
   it('mantém a tela e os dados intactos se o servidor rejeitar o estorno', async () => {
-    const env = runtime('admin', true);
+    const env = runtime('superadmin', true);
     env.open(demoCharge(), '2026-11');
     const get = (id) => env.dom.window.document.getElementById(id);
     get('reverseReason').value = 'Erro no valor registrado';
@@ -135,7 +136,7 @@ describe('excluir pagamento — estorno seguro', () => {
   });
 
   it('atualiza o script da interface para não usar versão antiga em cache', () => {
-    expect(read('index.html')).toContain('/simple-ui.js?v=21');
+    expect(read('index.html')).toContain('/simple-ui.js?v=22');
     expect(read('index.html')).toContain('/simple-ui.css?v=20');
   });
 });

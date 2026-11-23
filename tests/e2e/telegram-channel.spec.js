@@ -21,7 +21,7 @@ async function openAdmin(page, configured=true) {
       body:JSON.stringify(data),
     });
     if(url.pathname==='/auth/v1/user')return respond({id:USER_ID,email:'telegram-test@example.invalid'});
-    if(url.pathname==='/rest/v1/perfis')return respond([{user_id:USER_ID,nome:'Administrador',role:'admin'}]);
+    if(url.pathname==='/rest/v1/perfis')return respond([{user_id:USER_ID,nome:'Gestor',role:'superadmin'}]);
     if(url.pathname==='/rest/v1/alertas')return respond([]);
     if(url.pathname==='/rest/v1/alertas_leituras')return respond([]);
     if(url.pathname==='/rest/v1/push_dispositivos')return respond([]);

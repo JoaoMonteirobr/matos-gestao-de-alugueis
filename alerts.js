@@ -16,13 +16,13 @@ function operational(a){return a.tipo!=='login'}
 function visibleRows(){
  var rows=window._alerts||[];
  if(alertFilter==='pendencias')return rows.filter(function(a){return operational(a)&&!a.resolvido});
- if(alertFilter==='nao_lidas')return rows.filter(unread);
+ if(alertFilter==='nao_lidas')return rows.filter(function(a){return operational(a)&&unread(a)});
  if(alertFilter==='acessos')return rows.filter(function(a){return !operational(a)});
  return rows
 }
 function counts(){
  var all=window._alerts||[],active=all.filter(function(a){return operational(a)&&!a.resolvido});
- return {unread:all.filter(unread).length,active:active.length,
+ return {unread:Math.max(0,Number(window._alertsUnreadTotal??all.filter(function(a){return operational(a)&&unread(a)}).length)),active:active.length,
   urgent:active.filter(function(a){return a.prioridade==='urgente'}).length,
   login:all.filter(function(a){return a.tipo==='login'}).length}
 }
@@ -37,7 +37,7 @@ function rowMarkup(a){
  var isUnread=unread(a),done=a.resolvido;
  var actions=(isUnread?
   '<button class="btn secondary" type="button" onclick="markAlertReadUI(\''+a.id+'\')">Marcar como lida</button>':'');
- if(!done&&operational(a)&&currentRole==='admin'){
+ if(!done&&operational(a)&&isMatosSuper()){
   actions+='<button class="btn secondary" type="button" onclick="resolveAlert(\''+a.id+'\')">Resolver pendência</button>';
  }
  return '<article class="alert-entry'+(isUnread?' is-unread':'')+'">'+
@@ -85,20 +85,26 @@ function errorText(e){
  return s
 }
 async function refreshAlerts(){
- if(currentRole!=='admin')return;
+ if(!isMatosSuper())return;
  try{await request('/rest/v1/rpc/gerar_alertas_operacionais',{
   method:'POST',headers:authHeaders(session.access_token),body:'{}'
  })}catch(e){}
 }
 async function fetchAlertState(){
  var results=await Promise.all([
-  request('/rest/v1/alertas?select=*&order=resolvido.asc,created_at.desc&limit=200',{
+  request('/rest/v1/alertas?select=*&tipo=neq.login&order=resolvido.asc,created_at.desc&limit=300',{
    headers:authHeaders(session.access_token)}),
+  isMatosSuper()?request('/rest/v1/alertas?select=*&tipo=eq.login&order=created_at.desc&limit=50',{
+   headers:authHeaders(session.access_token)}):Promise.resolve([]),
   request('/rest/v1/alertas_leituras?select=alerta_id&user_id=eq.'+
-   encodeURIComponent(session.user.id)+'&limit=3000',{headers:authHeaders(session.access_token)})
+   encodeURIComponent(session.user.id)+'&limit=3000',{headers:authHeaders(session.access_token)}),
+  request('/rest/v1/rpc/contar_alertas_nao_lidos',{
+   method:'POST',headers:authHeaders(session.access_token),body:'{}'
+  })
  ]);
- window._alerts=results[0]||[];
- readIds=new Set((results[1]||[]).map(function(a){return a.alerta_id}));
+ window._alerts=(results[0]||[]).concat(results[1]||[]);
+ readIds=new Set((results[2]||[]).map(function(a){return a.alerta_id}));
+ window._alertsUnreadTotal=Number(results[3]||0);
 }
 async function markAlertsRead(ids){
  if(!session||!session.access_token)throw new Error('Faça login para marcar alertas como lidos.');
@@ -110,6 +116,7 @@ async function markAlertsRead(ids){
   return !a.resolvido&&(!ids||ids.indexOf(a.id)>=0)
  });
  candidates.forEach(function(a){readIds.add(a.id)});
+ await fetchAlertState();
  displayAlerts();
  if(typeof window.refreshMatosBell==='function')window.refreshMatosBell();
  return Number(result||0)
@@ -127,7 +134,7 @@ async function markAlertReadUI(id){
 }
 window.markAlertReadUI=markAlertReadUI;
 async function resolveAlert(id){
- if(currentRole!=='admin')return;
+ if(!isMatosSuper())return;
  try{
   await request('/rest/v1/alertas?id=eq.'+encodeURIComponent(id),{
    method:'PATCH',headers:Object.assign(authHeaders(session.access_token),
@@ -204,7 +211,7 @@ async function refreshMatosPushStatusUI(){
   }
  }catch(e){if(x)x.textContent='Registro indisponível';
   var s=E('push_status');if(s)s.textContent='Verificação indisponível'}
- if(currentRole==='admin'){
+ if(isMatosSuper()){
   try{
    var status=await window.getMatosPushServerStatus();
    server.textContent=status.configured?'Firebase conectado':'Credencial Firebase pendente';
@@ -279,7 +286,7 @@ function alertToolbar(){
   '<div class="alerts-filter-bar" aria-label="Filtrar notificações">'+
   '<button type="button" data-alert-filter="pendencias">Pendências</button>'+
   '<button type="button" data-alert-filter="nao_lidas">Não lidas</button>'+
-  '<button type="button" data-alert-filter="acessos">Acessos</button>'+
+  (isMatosSuper()?'<button type="button" data-alert-filter="acessos">Acessos</button>':'')+
   '<button type="button" data-alert-filter="historico">Histórico completo</button></div>'+
   '<p class="alerts-result-count" id="alerts_filter_count"></p>'+
   '<div id="alerts_msg" role="status" aria-live="polite"></div>'+
@@ -315,12 +322,12 @@ async function alertasPage(){
  try{
   await refreshAlerts();
   await fetchAlertState();
-  C.innerHTML='<div class="alerts-page">'+alertToolbar()+(window.matosTelegramPanel?window.matosTelegramPanel():'')+pushPanel()+'</div>';
+  C.innerHTML='<div class="alerts-page">'+alertToolbar()+(isMatosSuper()&&window.matosTelegramPanel?window.matosTelegramPanel():'')+(isMatosSuper()?pushPanel():'')+'</div>';
   C.querySelectorAll('[data-alert-filter]').forEach(function(button){
    button.onclick=function(){changeAlertFilter(button.getAttribute('data-alert-filter'))}
   });
   var more=E('alerts_more');if(more)more.onclick=function(){alertsVisible+=30;displayAlerts()};
-  displayAlerts();refreshMatosPushStatusUI();if(typeof window.matosTelegramMount==='function')window.matosTelegramMount();
+  displayAlerts();if(isMatosSuper()){refreshMatosPushStatusUI();if(typeof window.matosTelegramMount==='function')window.matosTelegramMount()}
   if(window.matosScrollToPush){
    window.matosScrollToPush=false;
    var target=E('push_test_remote');if(target)target.scrollIntoView({block:'center',behavior:'smooth'})

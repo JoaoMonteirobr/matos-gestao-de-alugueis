@@ -106,7 +106,7 @@ function panel(){
 }
 window.matosTelegramPanel=panel;
 async function refreshMatosTelegramUI(){
- if(currentRole!=='admin'){const node=el('telegram_controls');if(node)node.innerHTML='<p class="muted">Canal disponível somente aos administradores.</p>';return}
+ if(!isMatosSuper()){const node=el('telegram_controls');if(node)node.innerHTML='<p class="muted">Canal disponível somente aos administradores.</p>';return}
  try{
   status=await callTelegram('status');
   render();
