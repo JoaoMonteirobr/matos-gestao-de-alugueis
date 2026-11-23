@@ -48,7 +48,7 @@ mkdirSync(output, { recursive: true });
 for (const entry of readdirSync(root, { withFileTypes: true })) {
   if (!entry.isFile() || entry.name.startsWith('.') || excludedRootFiles.has(entry.name)) continue;
   if (!safeRootExtensions.has(extname(entry.name).toLowerCase())) continue;
-  if (/\\.(?:test|spec)\\.js$/i.test(entry.name)) continue;
+  if (/\.(?:test|spec)\.js$/i.test(entry.name)) continue;
   safeFile(join(root, entry.name), join(output, entry.name));
 }
 
@@ -62,7 +62,7 @@ for (const directory of publicAssetDirectories) {
 
 if (!existsSync(join(output, 'index.html'))) throw new Error('Falta index.html na pasta de publicação.');
 const html = readFileSync(join(output, 'index.html'), 'utf8');
-const references = [...html.matchAll(/(?:src|href)=(["'])(\\/[^"'#?]+)(?:[?#][^"']*)?\\1/g)];
+const references = [...html.matchAll(/(?:src|href)=(["'])(\/[^"'#?]+)(?:[?#][^"']*)?\1/g)];
 for (const [, , path] of references) {
   if (!existsSync(join(output, path.slice(1)))) throw new Error('Recurso referenciado e ausente: ' + path);
 }
@@ -80,7 +80,7 @@ writeFileSync(join(output, '_headers'), [
   '/manifest.webmanifest',
   '  Cache-Control: no-cache',
   '',
-].join('\\n'));
+].join('\n'));
 for (const forbidden of ['package.json', 'architecture.contract.json', 'supabase', 'tests', 'scripts', 'AGENTS.md']) {
   if (existsSync(join(output, forbidden))) throw new Error('Arquivo interno indevidamente publicado: ' + forbidden);
 }
