@@ -47,11 +47,18 @@ async function openAdmin(page) {
       return respond({ id: USER_ID, email: 'teste@example.invalid' });
     }
     if (url.pathname === '/rest/v1/perfis') {
-      return respond([{ user_id: USER_ID, nome: 'Admin de teste', role: 'admin' }]);
+      return respond([{ user_id: USER_ID, nome: 'Gestor de teste', role: 'superadmin' }]);
     }
     if (url.pathname === '/rest/v1/alertas') {
       if (url.searchParams.get('tipo') === 'neq.login') return respond([OPERATIONAL_ALERT]);
+      if (url.searchParams.get('tipo') === 'eq.login') return respond([LOGIN_ALERT]);
       return respond([LOGIN_ALERT, OPERATIONAL_ALERT]);
+    }
+    if (url.pathname === '/rest/v1/rpc/contar_alertas_nao_lidos') {
+      return respond(readByUser.has(OPERATIONAL_ALERT.id) ? 0 : 1);
+    }
+    if (url.pathname === '/rest/v1/rpc/listar_alertas_nao_lidos') {
+      return respond(readByUser.has(OPERATIONAL_ALERT.id) ? [] : [OPERATIONAL_ALERT]);
     }
     if (url.pathname === '/rest/v1/alertas_leituras') {
       return respond([...readByUser].map((alerta_id) => ({ alerta_id })));
@@ -97,7 +104,7 @@ test('sino: Ver todas abre Alertas e mostra configuração de push', async ({ pa
   await expect(page.locator('#push_test_remote')).toBeVisible();
   await expect(page.locator('#push_server_status')).toHaveText('Firebase conectado');
   await expect(page.locator('.side [data-page="Alertas"]')).toHaveCount(1);
-  await expect(page.locator('#alerts_stat_unread')).toHaveText('2');
+  await expect(page.locator('#alerts_stat_unread')).toHaveText('1');
   await expect(page.locator('#alerts_stat_active')).toHaveText('1');
   await expect(page.locator('#alerts_list')).toContainText('Contrato próximo do vencimento');
   await expect(page.locator('#alerts_list')).not.toContainText('Novo acesso ao sistema');
@@ -141,7 +148,7 @@ test('marcar todas como lidas não resolve contratos e mantém leitura após rec
 
   await page.locator('#notify_bell').click();
   await page.locator('#notify_all').click();
-  await expect(page.locator('#alerts_stat_unread')).toHaveText('2');
+  await expect(page.locator('#alerts_stat_unread')).toHaveText('1');
 
   await page.locator('#alerts_mark_all').click();
   await expect(page.locator('#alerts_stat_unread')).toHaveText('0');

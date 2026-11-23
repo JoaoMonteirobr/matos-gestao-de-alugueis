@@ -42,7 +42,7 @@ function context(overrides={}){
  const ctx={
   window:null,document:doc,forms:{IPTU:fields},tables:{IPTU:'iptu'},
   cache:{iptu:[{id:'iptu-old',data_pagamento:'2026-05-20'}]},
-  currentRole:'admin',E:(id)=>doc.getElementById(id),dbUpdate:updated,dbInsert:inserted,load,
+  currentRole:'superadmin',canMatosEditSection:()=>true,E:(id)=>doc.getElementById(id),dbUpdate:updated,dbInsert:inserted,load,
   esc:(v)=>String(v??''),money:(v)=>'R$ '+Number(v).toFixed(2),
   Date,
  };

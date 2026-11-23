@@ -34,10 +34,10 @@ describe('alertas simples, leitura privada e push com CORS', () => {
     expect(page).toContain('Pendências');
     expect(page).toContain('Acessos');
     expect(page).toContain('Histórico completo');
-    expect(page).toContain('if(!done&&operational(a)&&currentRole');
+    expect(page).toContain('if(!done&&operational(a)&&isMatosSuper()');
     expect(page).toContain("body:JSON.stringify({resolvido:true,resolvido_em:new Date().toISOString()})");
     expect(page).toContain('As pendências continuam abertas');
-    expect(bell).toContain('/rest/v1/alertas_leituras?select=alerta_id');
+    expect(bell).toContain('/rest/v1/rpc/contar_alertas_nao_lidos');
     expect(bell).toContain('window.refreshMatosBell=refreshBell');
   });
   it('corrige preflight sem permitir CORS amplo nem remover autorização', () => {
@@ -52,8 +52,8 @@ describe('alertas simples, leitura privada e push com CORS', () => {
   });
   it('carrega layout compacto e mantém teste remoto acessível', () => {
     expect(html).toContain('/alerts-ui.css?v=2');
-    expect(html).toContain('/alerts.js?v=20261120-1');
-    expect(html).toContain('/notification-session.js?v=3');
+    expect(html).toContain('/alerts.js?v=20261122-1');
+    expect(html).toContain('/notification-session.js?v=4');
     expect(css).toContain('@media(max-width:640px)');
     expect(css).toContain('.alerts-filter-bar');
     expect(page).toContain('id="push_test_remote"');

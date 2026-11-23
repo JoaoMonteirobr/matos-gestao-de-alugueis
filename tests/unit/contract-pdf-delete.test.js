@@ -18,9 +18,9 @@ const contract={id:UUID,imovel_id:'imovel-test',inquilino_id:'inquilino-test'};
 
 function harness(options={}){
  const calls=[],activeFiles=[documentRow];
- let role=options.role||'admin';
+ let role=options.role||'superadmin';
  const ctx={
-  window:{},currentRole:role,session:{access_token:'jwt-de-teste'},
+  window:{},currentRole:role,isMatosSuper:()=>role==='superadmin',session:{access_token:'jwt-de-teste'},
   SUPA_URL:'https://projeto-simulado.supabase.co',
   authHeaders:()=>({apikey:'anon-publica','Authorization':'Bearer jwt-de-teste'}),
   crypto:{randomUUID:()=>DOC_ID},
@@ -59,13 +59,13 @@ const pdf={
 describe('documentos de contratos e exclusão segura',()=>{
  it('usa bucket privado e mantém a autorização do servidor nas alterações',()=>{
   expect(source).toContain("var BUCKET='documentos-imoveis'");
-  expect(source).toContain("currentRole!=='admin'");
+  expect(source).toContain('if(!isMatosSuper())');
   expect(source).toContain("categoria:'Contrato',contrato_id:contract.id");
   expect(source).toContain("arquivo_tipo:'application/pdf'");
   expect(source).not.toContain('/object/public/');
   expect(source).not.toContain('service_role');
-  expect(html).toContain('/contract-pdfs.js?v=1');
-  expect(html).toContain('/simple-ui.js?v=21');
+  expect(html).toContain('/contract-pdfs.js?v=2');
+  expect(html).toContain('/simple-ui.js?v=22');
   expect(ui).toContain('data-contract-attach');
   expect(ui).toContain('data-contract-view');
   expect(ui).toContain('data-contract-delete');

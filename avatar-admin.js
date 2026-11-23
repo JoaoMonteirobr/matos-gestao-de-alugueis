@@ -15,7 +15,7 @@
  var previewUrl=null;
 
  function ownAvatar(){
-  return currentRole==='admin'&&session&&session.user&&currentProfile;
+  return canMatosOperate()&&session&&session.user&&currentProfile;
  }
  function validEmoji(value){return allowed.indexOf(value)>=0}
  function clearImageCache(){
@@ -44,7 +44,7 @@
  }
  function ensurePhoto(path){
   var uid=session&&session.user&&session.user.id||'';
-  if(!uid||currentRole!=='admin'||!path.startsWith(uid+'/'))return Promise.resolve(null);
+  if(!uid||!canMatosOperate()||!path.startsWith(uid+'/'))return Promise.resolve(null);
   if(imageCache.path===path&&imageCache.url)return Promise.resolve(imageCache.url);
   if(imageCache.path===path&&imageCache.promise)return imageCache.promise;
   clearImageCache();
@@ -85,7 +85,7 @@
   return '<span class="matos-avatar-preview-initial">'+esc((profile.nome||'M').charAt(0).toUpperCase())+'</span>'
  }
  function pickerHtml(){
-  if(currentRole!=='admin')return '';
+  if(!canMatosOperate())return '';
   return '<section class="panel matos-avatar-panel" aria-labelledby="matosAvatarHeading">'
     +'<div class="matos-avatar-heading"><div><h3 id="matosAvatarHeading">Sua foto ou personagem</h3>'
     +'<p>Escolha uma foto ou um emoji divertido para aparecer no seu perfil e no topo do Matos.</p></div>'
@@ -171,7 +171,7 @@
  }
  async function uploadPhoto(file){
   var uid=session&&session.user&&session.user.id;
-  if(!uid||currentRole!=='admin')throw new Error('Somente o administrador pode alterar a foto.');
+  if(!uid||!canMatosOperate())throw new Error('Somente o administrador pode alterar a foto.');
   var blob=await convertPhoto(file);
   var path=uid+'/'+crypto.randomUUID()+'.jpg';
   var url=SUPA_URL+'/storage/v1/object/avatares-admin/'+path.split('/').map(encodeURIComponent).join('/');
@@ -198,7 +198,7 @@
   if(!picker||!file||!save||!reset)return;
   picker.onclick=async function(ev){
    var button=ev.target.closest&&ev.target.closest('[data-avatar-emoji]');
-   if(!button||currentRole!=='admin')return;
+   if(!button||!canMatosOperate())return;
    var emoji=button.getAttribute('data-avatar-emoji');
    if(!validEmoji(emoji))return;
    busy(true);setStatus('Salvando personagem...');

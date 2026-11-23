@@ -48,7 +48,7 @@ function harness() {
     dash: async () => {},
     reports: async () => {},
     cache: { imoveis: exampleProperties, iptu: null },
-    currentRole: 'admin',
+    currentRole: 'superadmin', isMatosSuper:()=>true,
     dbGet: vi.fn(async (table) => {
       if (table !== 'iptu') throw new Error('Tabela inesperada');
       ctx.cache.iptu = storage.map((item) => ({ ...item }));
@@ -164,6 +164,6 @@ describe('IPTU anual sem seleção duplicada', () => {
     expect(source).toContain('recordedIptu(Number(ano.value),rows,id)');
     expect(source).toContain("await dbGet('iptu')");
     expect(source).toContain("window.saveForm=saveForm");
-    expect(html).toContain('/iptu-annual.js?v=3');
+    expect(html).toContain('/iptu-annual.js?v=4');
   });
 });

@@ -143,7 +143,7 @@ async function openFile(path){
 
 // ---------- Página ----------
 async function gastosPage(){
- var C=E('content'),readOnly=currentRole!=='admin';C.innerHTML='<div class="panel">Carregando gastos...</div>';
+ var C=E('content'),readOnly=!isMatosSuper();C.innerHTML='<div class="panel">Carregando gastos...</div>';
  var D=await loadData(),label=L(),today=localToday();
  var periods=periodOptions(D.gastos,today);
  if(!S.period||!periods.some(function(p){return p.v===S.period}))S.period=today.slice(0,4);
@@ -191,8 +191,8 @@ function showDetail(D,anexosBy,userAction){
   +'<dl>'+row('Data',dateBR(g.data))+row('Quem fez',g.fornecedor)+row('Pagamento',METHODS[g.forma_pagamento])+'</dl>'
   +(g.observacoes?'<div class="gx-note">'+esc(g.observacoes)+'</div>':'')
   +'<h4>Notas fiscais e fotos ('+files.length+')</h4>'
-  +(files.length?'<div class="gx-files">'+files.map(function(a){var pdf=String(a.arquivo_tipo||'').indexOf('pdf')>=0;return '<div class="gx-file"><button type="button" class="gx-open" data-open="'+esc(a.arquivo_path)+'"><i class="'+(pdf?'pdf':'img')+'">'+(pdf?'PDF':'IMG')+'</i><span>'+esc(a.arquivo_nome)+'</span></button>'+(currentRole==='admin'?'<button type="button" class="gx-x" title="Remover arquivo" data-rm="'+esc(a.id)+'">×</button>':'')+'</div>'}).join('')+'</div>':'<p class="gx-muted">Nenhum arquivo anexado.</p>')
-  +''+(currentRole==='admin'?'<div class="gx-foot"><button type="button" class="btn secondary" id="gxEdit">✏️ Editar / anexar</button><button type="button" class="btn secondary gx-danger" id="gxDel">Excluir</button></div>':'')+'';
+  +(files.length?'<div class="gx-files">'+files.map(function(a){var pdf=String(a.arquivo_tipo||'').indexOf('pdf')>=0;return '<div class="gx-file"><button type="button" class="gx-open" data-open="'+esc(a.arquivo_path)+'"><i class="'+(pdf?'pdf':'img')+'">'+(pdf?'PDF':'IMG')+'</i><span>'+esc(a.arquivo_nome)+'</span></button>'+(isMatosSuper()?'<button type="button" class="gx-x" title="Remover arquivo" data-rm="'+esc(a.id)+'">×</button>':'')+'</div>'}).join('')+'</div>':'<p class="gx-muted">Nenhum arquivo anexado.</p>')
+  +''+(isMatosSuper()?'<div class="gx-foot"><button type="button" class="btn secondary" id="gxEdit">✏️ Editar / anexar</button><button type="button" class="btn secondary gx-danger" id="gxDel">Excluir</button></div>':'')+'';
  if(userAction)box.classList.add('open');
  E('gxBack').onclick=function(){box.classList.remove('open')};
  if(E('gxEdit'))E('gxEdit').onclick=function(){openGastoForm(D,g)};
@@ -297,7 +297,7 @@ var prevIcon=root.navIcon;navIcon=function(x){return x==='Gastos'?'▦':prevIcon
 var prevLoad=root.load;
 load=async function(){
  if(page==='Gastos'){
-  if(currentRole!=='admin'&&currentRole!=='proprietario_consulta'){page='Dashboard';return prevLoad.apply(this,arguments)}
+  if(!isMatosSuper()&&currentRole!=='proprietario_consulta'){page='Dashboard';return prevLoad.apply(this,arguments)}
   try{return await gastosPage()}catch(e){E('content').innerHTML='<div class="notice err">'+esc(e.message)+'</div>'}
   return;
  }

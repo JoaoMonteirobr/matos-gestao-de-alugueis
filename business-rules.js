@@ -71,7 +71,7 @@ window.modulePage=async function(){
 var oldSave=window.saveForm;
 window.saveForm=async function(p,id){
  if(p!=='Cobranças')return oldSave(p,id);
- if(currentRole!=='admin')return;
+ if(!canMatosEditSection(p))return;
  var msg=E('formmsg'),inq=E('f_inquilino_id').value||null,imo=E('f_imovel_id').value||null;
  if(!inq&&!imo){msg.innerHTML='<div class="notice err">Selecione pelo menos um inquilino ou um imóvel.</div>';return}
  var competencia=E('f_competencia').value,vencimento=E('f_vencimento').value,aluguel=parseBRL(E('f_aluguel').value);

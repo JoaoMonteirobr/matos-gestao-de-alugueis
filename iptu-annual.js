@@ -157,7 +157,7 @@ function refreshIptuPropertyOptions(row){
 }
 var previousOpenForm=window.openForm||openForm;
 openForm=async function(p,row){
- if(p==='IPTU'&&currentRole==='admin'){
+ if(p==='IPTU'&&isMatosSuper()){
   // Consultar o banco novamente ao abrir: não depender da lista em cache.
   try{await dbGet('iptu')}
   catch(e){
@@ -190,7 +190,7 @@ window.openForm=openForm;
 // proteção contra cadastros simultâneos em abas/navegadores diferentes.
 var previousSaveForm=window.saveForm||saveForm;
 saveForm=async function(p,id){
- if(p==='IPTU'&&currentRole==='admin'){
+ if(p==='IPTU'&&isMatosSuper()){
   var imovel=document.getElementById('f_imovel_id'),ano=document.getElementById('f_ano');
   var msg=document.getElementById('formmsg');
   if(!imovel||!imovel.value||!ano||!ano.value){

@@ -65,12 +65,12 @@ describe('Paridade de painel e comprovantes privados', () => {
     expect(adminMain.slice(0, consultaMenus.length)).toEqual(consultaMenus);
     expect(consultaMenus).toEqual([
       'Dashboard','Cadastros','Inquilinos','Contratos','Pagamentos','IPTU','Chamados',
-      'Financeiro','Gastos','Relatórios'
+      'Financeiro','Gastos','Relatórios','Alertas'
     ]);
     expect(adminMain.slice(-2)).toEqual(['Acessos', 'Configurações']);
     expect(consultaMenus).not.toContain('Acessos');
     expect(consultaMenus).not.toContain('Configurações');
-    expect(ui).toContain("currentRole==='admin'?");
+    expect(ui).toContain('canMatosOperate()?');
   });
 
   it('mantém relatório idêntico para ambos perfis, com data de pagamento e galeria', () => {
@@ -124,9 +124,9 @@ describe('Paridade de painel e comprovantes privados', () => {
   });
 
   it('não expõe botões de alteração ao perfil somente leitura', () => {
-    expect(ui).toContain("currentRole==='admin'?");
-    expect(ui).toContain('var manual=currentRole===\'admin\'?');
-    expect(ui).toContain("if(currentRole!=='admin')return");
-    expect(read('app2.js')).toContain("if(currentRole==='admin')h+='<th>Ações</th>'");
+    expect(ui).toContain('canMatosOperate()?');
+    expect(ui).toContain('var manual=canMatosOperate()?');
+    expect(ui).toContain('if(!canMatosOperate())return');
+    expect(read('app2.js')).toContain("if(canMatosEditSection(page))h+='<th>Ações</th>'");
   });
 });

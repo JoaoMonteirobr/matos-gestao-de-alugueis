@@ -89,7 +89,7 @@ Deno.serve(async (req: Request) => {
           ...profile,
           email: publicEmail(profile.role, authUser?.email),
           ultimo_login: authUser?.last_sign_in_at || null,
-          gerenciavel: profile.role !== 'admin' && profile.user_id !== authorization.user.id,
+          gerenciavel: profile.role !== 'admin' && profile.role !== 'superadmin' && profile.user_id !== authorization.user.id,
         };
       });
       return json(req, { ok: true, items });

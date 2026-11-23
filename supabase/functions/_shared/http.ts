@@ -61,7 +61,7 @@ export async function requireAdmin(req: Request) {
   if (error || !data.user) return { error: 'unauthenticated' as const };
 
   const profile = await client.from('perfis').select('role').eq('user_id', data.user.id).maybeSingle();
-  if (profile.error || profile.data?.role !== 'admin') return { error: 'forbidden' as const };
+  if (profile.error || profile.data?.role !== 'superadmin') return { error: 'forbidden' as const };
   return { user: data.user, client };
 }
 
