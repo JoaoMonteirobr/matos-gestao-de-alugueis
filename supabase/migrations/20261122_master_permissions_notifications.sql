@@ -20,7 +20,7 @@ END $$;
 -- perfil nem troque o seu papel, evitando perda de acesso por erro operacional.
 CREATE OR REPLACE FUNCTION public.matos_preservar_conta_principal()
 RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path=''
-AS $
+AS $guard$
 BEGIN
  IF EXISTS(
   SELECT 1 FROM matos_private.superadmin s WHERE s.user_id=OLD.user_id AND s.enabled
@@ -35,7 +35,7 @@ BEGIN
  IF TG_OP='DELETE' THEN RETURN OLD; END IF;
  RETURN NEW;
 END;
-$;
+$guard$;
 REVOKE ALL ON FUNCTION public.matos_preservar_conta_principal() FROM PUBLIC,anon,authenticated;
 DROP TRIGGER IF EXISTS trg_matos_preservar_conta_principal ON public.perfis;
 CREATE TRIGGER trg_matos_preservar_conta_principal
@@ -72,7 +72,7 @@ END $$;
 
 -- A leitura necessária a cadastros e relatórios continua liberada ao
 -- administrador operacional, mas escrita nessas tabelas exige super privilégio.
-DO $
+DO $read$
 DECLARE tab text;
 BEGIN
  FOREACH tab IN ARRAY ARRAY['proprietarios','gastos','gasto_tipos','gasto_anexos'] LOOP
@@ -81,7 +81,7 @@ BEGIN
     tab
   );
  END LOOP;
-END $;
+END $read$;
 
 -- Ações relativas a senhas, alertas de login e outros dados de segurança.
 ALTER POLICY alertas_admin_all ON public.alertas
@@ -133,7 +133,7 @@ END $$;
 -- Funções SECURITY DEFINER que alteram dados em lote precisam de verificação
 -- privilegiada explícita: políticas de tabela não se aplicam a seu proprietário.
 -- Conserva integralmente a lógica financeira original, alterando apenas o gate.
-DO $
+DO $gates$
 DECLARE
  func_name text; previous text; updated text;
 BEGIN
@@ -155,7 +155,7 @@ BEGIN
   END IF;
   EXECUTE updated;
  END LOOP;
-END $;
+END $gates$;
 
 -- Inbox coerente para todo usuário: contagem total (sem limite 200) e até
 -- oito mensagens atuais. Retorna apenas linhas visíveis sob o próprio RLS.
