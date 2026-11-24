@@ -18,7 +18,6 @@
     { kind: 'contratos', label: 'Contratos' },
     { kind: 'manutencoes', label: 'Chamados' },
   ];
-  var MAX_PER_TYPE = 8;
   var TTL_MS = 120000;
   var records = [];
   var indexedFor = '';
@@ -40,9 +39,7 @@
     });
   }
   function normalize(value) {
-    return String(value == null ? '' : value).normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '').toLowerCase()
-      .replace(/[^a-z0-9]+/g, ' ').trim().replace(/\s+/g, ' ');
+    return window.MatosSearchCore.normalize(value);
   }
   function shortText(value, max) {
     var str = String(value || '').trim();
@@ -155,36 +152,9 @@
     });
     return result;
   }
+  // A regra de ordenação e filtros é compilada do TypeScript.
   function searchIndex(items, query, kind, limit) {
-    var tokens = normalize(query).split(' ').filter(Boolean);
-    if (!tokens.length) return [];
-    var matches = items.filter(function (item) {
-      return (kind === 'todos' || kind === item.kind) &&
-        tokens.every(function (term) { return item.searchText.indexOf(term) >= 0; });
-    });
-    var full = normalize(query);
-    matches.sort(function (a, b) {
-      function score(x) {
-        var title = normalize(x.title), subtitle = normalize(x.subtitle);
-        if (title === full) return 0;
-        if (title.startsWith(full)) return 1;
-        if (title.includes(full)) return 2;
-        if (subtitle.includes(full)) return 3;
-        return 4;
-      }
-      return score(a) - score(b) || a.kind.localeCompare(b.kind) || a.title.localeCompare(b.title, 'pt-BR');
-    });
-    var countByType = {};
-    var output = [];
-    matches.forEach(function (item) {
-      if (output.length >= (limit || 30)) return;
-      var n = countByType[item.kind] || 0;
-      if (kind !== 'todos' || n < MAX_PER_TYPE) {
-        output.push(item);
-        countByType[item.kind] = n + 1;
-      }
-    });
-    return output;
+    return window.MatosSearchCore.searchIndex(items, query, kind, limit);
   }
   function canSearch() {
     return !!(session && session.user && session.access_token &&
