@@ -50,7 +50,9 @@
       var query = normalize(input.value);
       var visible = 0;
       rows.forEach(function (row) {
-        var found = !query || normalize(row.textContent).includes(query);
+        var group = options.groups && row.closest(options.groups);
+        var context = group && group.querySelector('.panel-title h3');
+        var found = !query || normalize(row.textContent + ' ' + (context ? context.textContent : '')).includes(query);
         row.hidden = !found;
         if (found) visible++;
       });
