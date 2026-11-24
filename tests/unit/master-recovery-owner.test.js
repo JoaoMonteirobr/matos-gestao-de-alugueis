@@ -32,6 +32,8 @@ describe('recuperacao exclusiva e menus por permissao', () => {
 
   it('mantem acesso principal e restringe o proprietario a consulta e alertas', () => {
     expect(ownerUi).toContain("var consultaMenus=['Dashboard','Relatórios','Alertas']");
+    expect(ownerUi).toContain("var ownerMain=['Dashboard','Relatórios','Alertas']");
+    expect(ownerUi).toContain('var dashboardActions=');
     expect(ownerUi).toContain('var adminMain=adminBaseMenus.concat');
     expect(ui).toContain("matosIsSuperAdmin?'Superadministrador':'Administrador'");
     expect(profile).toContain('master_pw_shortcut');
