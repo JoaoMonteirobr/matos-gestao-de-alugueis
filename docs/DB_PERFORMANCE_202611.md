@@ -24,6 +24,14 @@ Nenhum índice exclusivo, regra de integridade ou política RLS será removido/m
 
 A ordenação REST passa a ser `created_at.desc,id.desc`, reduzindo a ambiguidade de páginas quando vários registros possuem o mesmo timestamp. Isso **não** equivale a paginação por cursor: novas inclusões durante as páginas ainda podem mover deslocamentos. A próxima etapa poderá adotar paginação por cursor mediante evidência de volume ou duplicações.
 
+## Resultado da aplicação no Supabase
+
+- Migração registrada como `20261124224228_indexar_relacionamentos_carteira_matos`, versionada em `supabase/migrations/`.
+- Os sete índices aparecem em `pg_indexes` com as colunas previstas.
+- O aviso `unindexed_foreign_keys` do Supabase caiu de **21 para 14 ocorrências**; nenhuma das sete chaves deste escopo continua sem índice.
+- Contagem de registros antes e depois: 21 imóveis, 21 inquilinos, 1 contrato, 231 cobranças e 0 chamados. Nenhuma mudança de contagem.
+- Não é possível inferir aceleração imediata com base apenas na queda de avisos; os planos devem ser reavaliados quando o volume aumentar.
+
 ## Validação
 
 1. Conferir o deploy do PR, typecheck, testes unitários, Playwright desktop/mobile e build Cloudflare.
