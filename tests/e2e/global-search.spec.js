@@ -151,3 +151,54 @@ test('busca encerra ao sair, não persiste resultados ou dados entre sessões', 
   await expect(page.locator('#matos_global_search')).toHaveCount(0);
   await expect(page.locator('#matos_global_mobile')).toHaveCount(0);
 });
+
+test('carteira de imóveis mostra indicadores e filtra endereços sem alterar cadastros', async ({ page }) => {
+  await openAccount(page, 'admin', true);
+  await page.evaluate(() => window.goQuick('Cadastros'));
+  await expect(page.locator('.matos-portfolio-properties')).toBeVisible();
+  await expect(page.locator('.matos-portfolio-properties .portfolio-stat')).toHaveCount(4);
+  await expect(page.locator('.property-address-group')).toHaveCount(1);
+  const filter = page.locator('#portfolio_properties_filter');
+  await filter.fill('coronel alexandrino');
+  await expect(page.locator('.property-address-group:visible')).toHaveCount(1);
+  await expect(page.locator('#portfolio_properties_filter_count')).toContainText('1 de 1 imóveis');
+  await filter.fill('endereço inexistente');
+  await expect(page.locator('#portfolio_properties_filter_empty')).toBeVisible();
+  await filter.fill('');
+  await expect(page.locator('#newProperty')).toBeVisible();
+  await page.locator('#newProperty').click();
+  await expect(page.locator('#modal.matos-portfolio-dialog')).toBeVisible();
+  await page.locator('#cancelmodal').click();
+  await expect(page.locator('#modal')).toHaveCount(0);
+});
+
+test('inquilinos mantém busca e formulário com o novo layout', async ({ page }) => {
+  await openAccount(page, 'admin', true);
+  await page.evaluate(() => window.goQuick('Inquilinos'));
+  await expect(page.locator('.matos-portfolio-tenants')).toBeVisible();
+  await expect(page.locator('.matos-portfolio-tenants .portfolio-stat')).toHaveCount(4);
+  await page.locator('#search').fill('desconhecido');
+  await expect(page.locator('#portfolio_tenants_count')).toContainText('0 de 1');
+  await page.locator('#search').fill('jose');
+  await expect(page.locator('#portfolio_tenants_count')).toContainText('1 de 1');
+  await expect(page.locator('#newrec')).toBeVisible();
+  await page.locator('#newrec').click();
+  await expect(page.locator('#modal.matos-portfolio-dialog')).toBeVisible();
+  await page.locator('#cancelmodal').click();
+});
+
+test('contratos mostram prazos e o filtro preserva controles de PDF', async ({ page }) => {
+  await openAccount(page, 'admin', true);
+  await page.evaluate(() => window.goQuick('Contratos'));
+  await expect(page.locator('.matos-portfolio-contracts')).toBeVisible();
+  await expect(page.locator('.matos-portfolio-contracts .portfolio-stat')).toHaveCount(4);
+  await expect(page.locator('[data-contract-attach]')).toBeVisible();
+  const filter = page.locator('#portfolio_contracts_filter');
+  await filter.fill('galeria matos');
+  await expect(page.locator('#portfolio_contracts_filter_count')).toContainText('1 de 1');
+  await expect(page.locator('[data-contract-attach]')).toBeVisible();
+  await filter.fill('sem correspondência');
+  await expect(page.locator('#portfolio_contracts_filter_empty')).toBeVisible();
+  await filter.fill('');
+  await expect(page.locator('[data-contract-attach]')).toBeVisible();
+});
