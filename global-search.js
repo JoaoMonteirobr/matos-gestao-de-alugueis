@@ -178,7 +178,7 @@
     var rows = [];
     for (var offset = 0; offset < 5000; offset += 500) {
       var url = '/rest/v1/' + source.table + '?select=' + source.fields +
-        '&order=created_at.desc&limit=500&offset=' + offset;
+        '&order=created_at.desc,id.desc&limit=500&offset=' + offset;
       var batch = await request(url, { headers: authHeaders(token) });
       if (!Array.isArray(batch)) throw new Error('Resposta inesperada ao consultar ' + source.table);
       rows.push.apply(rows, batch);
