@@ -27,6 +27,7 @@
   var pending = null;
   var overlay = null;
   var filtered = [];
+  var detailItem = null;
   var currentQuery = '';
   var selectedType = 'todos';
   var searchTimer = null;
@@ -267,6 +268,7 @@
     if (existing) existing.remove();
     overlay = null;
     filtered = [];
+    detailItem = null;
     var header = document.getElementById('matos_global_header');
     if (header) header.value = '';
     document.body.classList.remove('matos-search-open');
@@ -283,6 +285,7 @@
       return '<button type="button" class="matos-search-filter' + (x.kind === selectedType ? ' active' : '') +
         '" data-search-type="' + x.kind + '" aria-pressed="' + (x.kind === selectedType) + '">' + safe(x.label) + '</button>';
     }).join('');
+    detailItem = null;
     filtered = searchIndex(records, currentQuery, selectedType, 30);
     if (!filtered.length) {
       showHint('Nenhum registro encontrado. Confira o nome, endereço, competência ou situação.');
@@ -300,6 +303,7 @@
       }).join('') + '</div>';
   }
   function renderDetail(item) {
+    detailItem = item;
     var panel = document.getElementById('matos_search_content');
     if (!panel) return;
     var target = permittedSection(item);
@@ -318,7 +322,8 @@
       return btn.getAttribute('data-page') === section;
     });
     if (!available) return;
-    var item = filtered.find(function (x) { return permittedSection(x) === section; });
+    var item = detailItem;
+    if (!item || permittedSection(item) !== section) return;
     if (item && item.period && /^\d{4}-\d{2}$/.test(item.period)) {
       if (section === 'Pagamentos') window._simpleMonth = item.period;
       if (section === 'Relatórios') window._reportMonth = item.period;
