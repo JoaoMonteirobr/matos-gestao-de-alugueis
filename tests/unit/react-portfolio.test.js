@@ -20,6 +20,8 @@ describe('Primeira ilha React da carteira Matos', () => {
     expect(src).toContain('function mountFilter(');
     expect(bundle).toContain('MatosReactPortfolio');
     expect(src).toContain('PortfolioFilter');
+    expect(src).toContain('function mountContractsFilter(');
+    expect(simple).toContain('react.mountContractsFilter(');
     expect(bundle).not.toContain('React.createElement');
     expect(index).toContain('/portfolio-react.js?v=3');
     expect(index).toContain('/simple-ui.js?v=27');
@@ -53,6 +55,33 @@ describe('Primeira ilha React da carteira Matos', () => {
       expect(target.querySelector('input').getAttribute('aria-label')).toContain('Filtrar por imóvel');
       expect(onFilter).not.toHaveBeenCalled();
       expect(api.mountFilter(null, 3, onFilter)).toBe(false);
+      api.cleanup();
+    } finally {
+      dom.window.close();
+    }
+  });
+
+  it('configura o filtro React de contratos sem alterar tabelas ou acessar dados externos', async () => {
+    const dom = new JSDOM('<main><div id="contract-filter" class="portfolio-filterbar">Busca clássica</div><table><tbody><tr id="contract-row"><td>PDF e edição preservados</td></tr></tbody></table></main>', {
+      runScripts: 'outside-only',
+      pretendToBeVisual: true,
+      url: 'https://matos.example.invalid',
+    });
+    try {
+      dom.window.eval(bundle);
+      const api = dom.window.MatosReactPortfolio;
+      const target = dom.window.document.querySelector('#contract-filter');
+      const row = dom.window.document.querySelector('#contract-row');
+      const handler = vi.fn(() => ({ visible: 1, total: 1 }));
+      expect(api.mountContractsFilter(target, 1, handler)).toBe(true);
+      await vi.waitFor(() => {
+        expect(target.querySelector('#portfolio_contracts_filter')).toBeTruthy();
+      }, { timeout: 2500 });
+      expect(target.getAttribute('data-react-filter')).toBe('mounted');
+      expect(target.querySelector('#portfolio_contracts_filter_count').textContent).toContain('1 de 1 contratos');
+      expect(target.querySelector('input').getAttribute('placeholder')).toContain('inquilino');
+      expect(dom.window.document.querySelector('#contract-row')).toBe(row);
+      expect(handler).not.toHaveBeenCalled();
       api.cleanup();
     } finally {
       dom.window.close();
