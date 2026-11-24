@@ -128,6 +128,7 @@ async function openQuickPayment(k){
  var inqs=cache.inquilinos||[],ims=cache.imoveis||[],cts=cache.contratos||[],charges=cache.cobrancas||[],today=new Date().toISOString().slice(0,10);
  var options=ims.map(function(im){var ct=cts.find(function(c){return c.imovel_id===im.id&&activeInMonth(c,k)})||cts.find(function(c){return c.imovel_id===im.id}),tid=ct&&ct.inquilino_id||im.inquilino_id,t=inqs.find(function(x){return x.id===tid}),rent=Number(ct&&ct.aluguel_atual||im.aluguel_base||0);return '<option value="'+im.id+'" data-tenant="'+esc(tid||'')+'" data-rent="'+rent+'">'+esc(im.nome||im.endereco||'Imóvel')+(t?' — '+esc(t.nome):'')+'</option>'}).join('');
  document.body.insertAdjacentHTML('beforeend','<div class="modalbg" id="modal"><div class="modal simple-modal"><div class="modalhead"><div><h2>Pagamento rápido</h2><small>Escolha o imóvel/inquilino, informe data e valor. O restante é automático.</small></div><button id="closemodal" class="close">×</button></div><div class="modalbody"><div id="formmsg"></div><div class="formgrid"><div class="field full"><span class="lbl">Imóvel / inquilino *</span><select id="qp_property" class="inp"><option value="">Selecione</option>'+options+'</select></div><div class="field"><span class="lbl">Data do pagamento *</span><input id="qp_date" class="inp" type="date" value="'+today+'"></div><div class="field"><span class="lbl">Valor pago *</span><input id="qp_value" class="inp" type="number" min="0.01" step="0.01"></div><div class="field full"><span class="lbl">Comprovante (opcional)</span><input id="qp_proof" class="inp pay-proof-select" type="file" accept="image/jpeg,image/png,image/webp,application/pdf"><small>Foto ou PDF, até 10 MB. Caso não tenha comprovante, deixe vazio.</small></div></div><div class="notice" style="margin-top:12px">Competência: <b>'+esc(k)+'</b>. O valor do aluguel será preenchido automaticamente.</div></div><div class="modalfoot"><button id="cancelmodal" class="btn secondary">Cancelar</button><button id="saveQuickPayment" class="btn primary">Registrar pagamento</button></div></div></div>');
+ E('modal').classList.add('matos-portfolio-dialog');
  function close(){E('modal').remove()}E('closemodal').onclick=E('cancelmodal').onclick=close;
  E('qp_property').onchange=function(){var o=this.options[this.selectedIndex];E('qp_value').value=o&&o.dataset.rent||''};
  E('saveQuickPayment').onclick=async function(){var msg=E('formmsg'),property=E('qp_property').value,date=E('qp_date').value,value=Number(E('qp_value').value||0);if(!property||!date||value<=0){msg.innerHTML='<div class="notice err">Selecione o imóvel/inquilino e informe data e valor.</div>';return}var im=ims.find(function(x){return x.id===property}),ct=cts.find(function(c){return c.imovel_id===property&&activeInMonth(c,k)})||cts.find(function(c){return c.imovel_id===property}),tenant=ct&&ct.inquilino_id||im&&im.inquilino_id||null,rent=Number(ct&&ct.aluguel_atual||im&&im.aluguel_base||value),old=paymentFor(ct&&ct.id,k,charges,property);if(old&&!confirm('Já existe um pagamento lançado para este imóvel nesta competência. Deseja atualizar o lançamento existente?'))return;var obj={inquilino_id:tenant,imovel_id:property,contrato_id:ct?ct.id:null,competencia:k+'-01',vencimento:ct?dueDate(ct,k):k+'-05',aluguel:rent,outros_encargos:Number(old&&old.outros_encargos||0),valor_pago:value,data_pagamento:date,forma_pagamento:'pix',status:value>=rent?'pago':'pendente',observacoes:old&&old.observacoes||'Pagamento registrado pelo lançamento rápido.'};try{msg.innerHTML='<div class="notice">Registrando...</div>';await savePaymentWithProof(obj,old,E('qp_proof').files&&E('qp_proof').files[0]);cache.cobrancas=null;close();paymentsPage()}catch(e){msg.innerHTML='<div class="notice err">'+esc(e.message)+'</div>'}}
@@ -292,6 +293,14 @@ function categoryTitle(cat){return {apartamentos:'Apartamentos',comerciais:'Come
 async function cadastrosPage(){
  await Promise.all([dbGet('imoveis'),dbGet('inquilinos')]);
  var ims=cache.imoveis||[],inqs=cache.inquilinos||[],groups=groupedByLocation(ims,function(im){return im});
+ var ui=window.MatosPortfolioUI;
+ var summary=ui?ui.statsHTML([
+  {label:'Imóveis cadastrados',value:ims.length},
+  {label:'Ocupados',value:ims.filter(function(x){return x.status==='ocupado'}).length},
+  {label:'Disponíveis',value:ims.filter(function(x){return x.status==='vago'||x.status==='desocupado'}).length},
+  {label:'Endereços',value:groups.length}
+ ],'Resumo de imóveis'):'';
+ var filter=ui?ui.filterHTML('portfolio_properties_filter','Filtrar por imóvel, endereço ou inquilino','imóveis'):'';
  var panels=groups.map(function(group){
   var sections=['apartamentos','comerciais','outros'].map(function(cat){
    var items=group[cat];if(!items.length)return '';
@@ -299,17 +308,19 @@ async function cadastrosPage(){
     var t=inqs.find(function(x){return x.id===im.inquilino_id});
     return '<tr><td><b>'+esc(im.nome||im.complemento||'Imóvel')+'</b>'+(im.complemento?'<div class="muted">'+esc(im.complemento)+'</div>':'')+'</td><td>'+money(im.aluguel_base)+'</td><td>'+st(im.status==='vago'?'desocupado':im.status)+'</td><td>'+esc(t&&t.nome||'—')+'</td></tr>'
    }).join('');
-   return '<div class="property-subgroup"><h4>'+categoryTitle(cat)+' <span class="muted">('+items.length+')</span></h4><div class="tablewrap"><table class="table"><thead><tr><th>Unidade / imóvel</th><th>Aluguel</th><th>Situação</th><th>Inquilino</th></tr></thead><tbody>'+rows+'</tbody></table></div></div>'
+   return '<div class="property-subgroup"><h4>'+categoryTitle(cat)+' <span class="muted">('+items.length+')</span></h4><div class="tablewrap"><table class="table portfolio-table"><thead><tr><th>Unidade / imóvel</th><th>Aluguel</th><th>Situação</th><th>Inquilino</th></tr></thead><tbody>'+rows+'</tbody></table></div></div>'
   }).join('');
   return '<section class="panel simple-panel property-address-group"><div class="panel-title"><h3>'+esc(group.label)+'</h3><span class="muted">'+groupCount(group)+' unidades</span></div>'+sections+'</section>'
  }).join('');
- E('content').innerHTML='<div class="simple-toolbar"><div><h2>Cadastros</h2><p>Imóveis agrupados por endereço, apartamentos e unidades comerciais.</p></div>'+(currentRole==='admin'?'<button id="newProperty" class="btn primary">+ Cadastrar imóvel</button>':'<span class="notice access-readonly">Somente consulta</span>')+'</div>'+(panels||'<div class="panel simple-panel"><div class="empty">Nenhum imóvel cadastrado.</div></div>');
+ E('content').innerHTML='<div class="matos-portfolio matos-portfolio-properties"><div class="simple-toolbar"><div><span class="portfolio-eyebrow">Gestão da carteira</span><h2>Cadastros</h2><p>Imóveis agrupados por endereço, apartamentos e unidades comerciais.</p></div>'+(currentRole==='admin'?'<button id="newProperty" class="btn primary">+ Cadastrar imóvel</button>':'<span class="notice access-readonly">Somente consulta</span>')+'</div>'+summary+filter+(panels||'<div class="panel simple-panel"><div class="empty">Nenhum imóvel cadastrado.</div></div>')+'</div>';
+ if(ui)ui.bindFilter({root:E('content'),id:'portfolio_properties_filter',rows:'.portfolio-table tbody tr',sections:'.property-subgroup',groups:'.property-address-group',noun:'imóveis'});
  if(E('newProperty'))E('newProperty').onclick=function(){openPropertyRegistration(inqs)}
 }
 // Abre o cadastro integrado: imóvel e, se ocupado, dados obrigatórios do inquilino.
 function openPropertyRegistration(existingTenants,presetTenantId){
  existingTenants=existingTenants||cache.inquilinos||[];
  document.body.insertAdjacentHTML('beforeend','<div class="modalbg" id="modal"><div class="modal simple-modal"><div class="modalhead"><div><h2>Novo imóvel</h2><small>Cadastro essencial do imóvel</small></div><button id="closemodal" class="close">×</button></div><div class="modalbody"><div id="formmsg"></div><div class="formgrid"><div class="field"><span class="lbl">Tipo de imóvel *</span><select id="reg_property_type" class="inp"><option value="apartamento">Apartamento</option><option value="casa">Casa</option><option value="loja">Loja</option><option value="galpao">Galpão</option><option value="sala_comercial">Sala comercial</option><option value="outro">Outro</option></select></div><div class="field" id="reg_apartment_wrap"><span class="lbl">Número do apartamento *</span><input id="reg_apartment" class="inp" placeholder="Ex.: 202"></div><div class="field full"><span class="lbl">Endereço *</span><input id="reg_address" class="inp" placeholder="Rua, avenida..."></div><div class="field"><span class="lbl">Número</span><input id="reg_number" class="inp" placeholder="Número do prédio/casa"></div><div class="field"><span class="lbl">Bairro</span><input id="reg_neighborhood" class="inp"></div><div class="field"><span class="lbl">Valor do aluguel *</span><input id="reg_rent" class="inp" type="number" min="0" step="0.01"></div><div class="field"><span class="lbl">Situação *</span><select id="reg_status" class="inp"><option value="vago">Desocupado</option><option value="ocupado">Ocupado</option></select></div></div><div id="tenantBlock" class="tenant-register" style="display:none"><div class="section-label">Dados do inquilino</div><div class="formgrid"><div class="field full"><span class="lbl">Usar cadastro existente?</span><select id="reg_existing_tenant" class="inp"><option value="">Cadastrar novo inquilino</option>'+existingTenants.map(function(t){return '<option value="'+esc(t.id)+'">'+esc(t.nome||'Sem nome')+' — '+esc(t.cpf_cnpj||'sem documento')+'</option>'}).join('')+'</select></div><div id="reg_new_tenant_fields" class="formgrid" style="grid-column:1/-1"><div class="field"><span class="lbl">Tipo de pessoa *</span><select id="reg_person" class="inp"><option value="pf">Pessoa Física</option><option value="pj">Pessoa Jurídica</option></select></div><div class="field"><span class="lbl">Nome / Razão social *</span><input id="reg_tenant_name" class="inp"></div><div class="field"><span id="reg_doc_label" class="lbl">CPF *</span><input id="reg_doc" class="inp" inputmode="numeric"></div><div class="field"><span class="lbl">Telefone para contato *</span><input id="reg_phone" class="inp" type="tel" placeholder="(68) 99999-9999"></div></div></div></div></div><div class="modalfoot"><button id="cancelmodal" class="btn secondary">Cancelar</button><button id="saveProperty" class="btn primary">Salvar cadastro</button></div></div></div>');
+ E('modal').classList.add('matos-portfolio-dialog');
  function close(){E('modal').remove()} E('closemodal').onclick=E('cancelmodal').onclick=close;
  function syncPropertyType(){var apt=E('reg_property_type').value==='apartamento';E('reg_apartment_wrap').style.display=apt?'block':'none';E('reg_apartment').required=apt;if(!apt)E('reg_apartment').value=''} E('reg_property_type').onchange=syncPropertyType;syncPropertyType();
  E('reg_status').onchange=function(){E('tenantBlock').style.display=this.value==='ocupado'?'block':'none'};
@@ -330,6 +341,14 @@ async function contractsPage(){
  var admin=Boolean(matosIsSuperAdmin),api=window.MatosContractFiles;
  var docs=api?await api.list():[],docsByContract={};
  docs.forEach(function(d){if(!docsByContract[d.contrato_id])docsByContract[d.contrato_id]=[];docsByContract[d.contrato_id].push(d)});
+ var ui=window.MatosPortfolioUI;
+ var summary=ui?ui.statsHTML([
+  {label:'Contratos cadastrados',value:cs.length},
+  {label:'Ativos',value:cs.filter(function(x){return x.status==='ativo'}).length},
+  {label:'Vencem em 60 dias',value:cs.filter(function(x){var d=daysUntil(x.data_fim);return x.status==='ativo'&&d>=0&&d<=60}).length},
+  {label:'Com PDF anexado',value:cs.filter(function(x){return (docsByContract[x.id]||[]).length>0}).length}
+ ],'Resumo de contratos'):'';
+ var filter=ui?ui.filterHTML('portfolio_contracts_filter','Filtrar por imóvel, inquilino ou situação','contratos'):'';
  var rows=cs.map(function(c){
   var im=ims.find(function(x){return x.id===c.imovel_id}),t=inqs.find(function(x){return x.id===c.inquilino_id});
   var d=daysUntil(c.data_fim),badge=d<0?'<span class="badge red">Vencido</span>':
@@ -352,18 +371,19 @@ async function contractsPage(){
    '</td><td>'+badge+'</td><td class="contract-doc-cell">'+documentCell+'</td>'+actions+'</tr>'
  }).join('');
  var C=E('content');
- C.innerHTML='<div class="simple-toolbar"><div><h2>Contratos</h2>'+
+ C.innerHTML='<div class="matos-portfolio matos-portfolio-contracts"><div class="simple-toolbar"><div><span class="portfolio-eyebrow">Documentação da carteira</span><h2>Contratos</h2>'+
   '<p>Consulte, corrija e organize contratos assinados e prazos.</p></div>'+
   (admin?'<button id="newContract" class="btn primary">+ Novo contrato</button>':
-   '<span class="notice access-readonly">Somente consulta</span>')+'</div>'+
+   '<span class="notice access-readonly">Somente consulta</span>')+'</div>'+summary+filter+
   '<div class="notice contract-notice">O sistema gera aviso automático quando faltarem <b>60 dias</b> para o término de um contrato ativo.</div>'+
   '<p id="contract-doc-status" class="contract-doc-status" role="status" aria-live="polite"></p>'+
-  '<div class="panel simple-panel"><div class="tablewrap"><table class="table contracts-table">'+
+  '<div class="panel simple-panel portfolio-content-panel"><div class="tablewrap"><table class="table contracts-table portfolio-table">'+
   '<thead><tr><th>Imóvel</th><th>Inquilino</th><th>Início</th><th>Término</th>'+
   '<th>Aluguel</th><th>Situação / prazo</th><th>Contrato em PDF</th>'+
   (admin?'<th>Ações</th>':'')+'</tr></thead><tbody>'+
   (rows||'<tr><td colspan="'+(admin?8:7)+'" class="empty">Nenhum contrato cadastrado.</td></tr>')+
-  '</tbody></table></div></div>';
+  '</tbody></table></div></div></div>';
+ if(ui)ui.bindFilter({root:C,id:'portfolio_contracts_filter',rows:'.contracts-table tbody tr',noun:'contratos'});
  function notice(message,error){
   var node=E('contract-doc-status');
   if(node){node.className='contract-doc-status notice '+(error?'err':'success');node.textContent=message}
