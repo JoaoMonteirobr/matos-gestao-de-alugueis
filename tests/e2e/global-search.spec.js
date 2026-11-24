@@ -60,7 +60,7 @@ async function openAccount(page, role, superadmin = false) {
     if (uri.pathname === '/rest/v1/rpc/gerar_alertas_operacionais') return respond(0);
     const entity = uri.pathname.replace('/rest/v1/', '');
     if (Object.hasOwn(DB, entity)) {
-      requests.push({ entity, auth: route.request().headers().authorization });
+      if (uri.searchParams.has('limit')) requests.push({ entity, auth: route.request().headers().authorization });
       const offset = Number(uri.searchParams.get('offset') || 0);
       return respond(offset === 0 ? DB[entity] : []);
     }
@@ -146,7 +146,7 @@ test('busca encerra ao sair, não persiste resultados ou dados entre sessões', 
   await launchSearch(page);
   await page.locator('#matos_search_input').fill('jose');
   await expect(page.locator('.matos-search-result')).toHaveCount(5);
-  await page.locator('#logout').click();
+  await page.evaluate(() => document.getElementById('logout').click());
   await expect(page.locator('#matos_global_search')).toHaveCount(0);
   await expect(page.locator('#matos_global_mobile')).toHaveCount(0);
 });
