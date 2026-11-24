@@ -24,12 +24,13 @@ describe('pausa temporária de Repasses, Documentos e Vistorias',()=>{
     }
   });
   it('oculta as abas em todos os perfis na interface atual',()=>{
-    const start=ui.indexOf('var consultaMenus='),end=ui.indexOf('// Liga cada tela',start);
+    const start=ui.indexOf('var adminBaseMenus='),end=ui.indexOf('// Liga cada tela',start);
     const current=new Function('adminMenus','ownerMenus','tenantMenus',ui.slice(start,end)+';return {adminMain,consultaMenus,ownerMain,tenantMain};')([],[],[]);
     for(const menu of Object.values(current)){
       for(const name of disabled)expect(menu).not.toContain(name);
     }
-    expect(current.consultaMenus).toContain('Pagamentos');
+    expect(current.consultaMenus).toEqual(['Dashboard','Relatórios','Alertas']);
+    expect(current.adminMain).toContain('Pagamentos');
     expect(current.adminMain).toContain('Configurações');
     expect(current.consultaMenus).not.toContain('Configurações');
   });
@@ -48,8 +49,8 @@ describe('pausa temporária de Repasses, Documentos e Vistorias',()=>{
     expect(files).toContain('async function documentosPage()');
     expect(files).toContain('async function vistoriasPage()');
     expect(ui).toContain('async function simpleReports()');
-    expect(index).toContain('/app1.js?v=20261122-1');
-    expect(index).toContain('/simple-ui.js?v=22');
+    expect(index).toContain('/app1.js?v=20261123-2');
+    expect(index).toContain('/simple-ui.js?v=24');
     expect(index).toContain('/owner-finance.js?v=20261108-3');
     expect(index).toContain('/property-files.js?v=20261108-3');
   });

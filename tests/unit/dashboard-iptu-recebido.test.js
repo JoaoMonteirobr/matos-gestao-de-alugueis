@@ -18,12 +18,12 @@ const iptuRecords = [
   {id:'i5',ano:2025,situacao:'em_aberto',valor_total:500},
 ];
 
-function sandbox(records=iptuRecords) {
+function sandbox(records=iptuRecords,master=true) {
   const dom = new JSDOM('<div id="content"></div>');
   const window = dom.window;
   const goQuick = vi.fn();
   const context = {
-    document:window.document,window,goQuick,
+    document:window.document,window,goQuick,matosIsSuperAdmin:master,
     E:(id)=>window.document.getElementById(id),
     money:(n)=>Number(n||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'}),
     esc:(v)=>String(v),
@@ -53,6 +53,13 @@ describe('Dashboard anual — IPTU recebido',()=>{
     expect(result.paidCount).toBe(2);
     expect(result.pendingCount).toBe(1);
     expect(result.count).toBe(3);
+  });
+
+  it('não oferece atalhos administrativos no card de IPTU do proprietário',()=>{
+    const x=sandbox(iptuRecords,false);
+    x.render();
+    expect(x.window.document.getElementById('dashIptuReceivedCard')).toBeTruthy();
+    expect(x.window.document.getElementById('dashIptuOpen')).toBeNull();
   });
 
   it('não inclui IPTU de 2025 nos valores de 2026 nem mistura aluguéis',()=>{
@@ -124,7 +131,7 @@ describe('Dashboard anual — IPTU recebido',()=>{
     expect(css).toContain('.iptu-received-primary');
     expect(css).toContain('@media(max-width:760px)');
     expect(css).toContain('@media(max-width:390px)');
-    expect(index).toContain('/simple-ui.js?v=22');
+    expect(index).toContain('/simple-ui.js?v=24');
     expect(index).toContain('/simple-ui.css?v=21');
     expect(js).toContain("Promise.all([ledgerData(k),dbGet('manutencoes'),dbGet('iptu')])");
   });

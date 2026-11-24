@@ -85,6 +85,6 @@ describe('conta principal e permissões por papel',()=>{
   expect(security).not.toContain('console.log');
   expect(shell).toContain('MatosMasterSecurity.recoverIfPresent()');
   expect(menus).toContain("section==='Minha senha'");
-  expect(index).toContain('/master-security.js?v=1');
+  expect(index).toContain('/master-security.js?v=2');
  });
 });

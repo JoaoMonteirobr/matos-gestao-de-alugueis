@@ -20,7 +20,7 @@ function passwordError(a,b){
 }
 root.MatosPerfil={cleanName:cleanName,nameError:nameError,passwordError:passwordError};
 
-function roleLabel(){return currentRole==='admin'?'Administrador':currentRole==='proprietario_consulta'?'Proprietário · consulta geral':currentRole==='proprietario'?'Proprietário':currentRole==='inquilino'?'Inquilino':'Usuário'}
+function roleLabel(){return currentRole==='admin'?(matosIsSuperAdmin?'Superadministrador':'Administrador'):currentRole==='proprietario_consulta'?'Proprietário · consulta geral':currentRole==='proprietario'?'Proprietário':currentRole==='inquilino'?'Inquilino':'Usuário'}
 function loginLabel(){var p=currentProfile||{};return p.telefone_login||session&&session.user&&session.user.email||'—'}
 function currentName(){var n=cleanName(currentProfile&&currentProfile.nome);return n.indexOf('@')>=0?'':n}
 
@@ -33,7 +33,7 @@ function profilePage(){
  +'<label class="lbl" for="pf_nome">Nome</label><input id="pf_nome" class="inp" maxlength="80" autocomplete="name" placeholder="Ex.: Maria da Silva" value="'+esc(currentName())+'">'
  +'<div class="perfil-info"><div><span>Login</span><b>'+esc(loginLabel())+'</b></div><div><span>Tipo de acesso</span><b>'+esc(roleLabel())+'</b></div></div>'
  +'<button id="pf_save" class="btn primary" type="button">Salvar nome</button></div>'
- +(matosIsSuperAdmin?'<div class="panel simple-panel"><h3>Segurança da conta</h3><p class="muted">Para alterar sua senha, acesse Configurações → Minha senha. A senha atual será solicitada.</p></div>':'<div class="panel simple-panel"><div class="panel-title"><h3>Trocar senha</h3></div>'
+ +(matosIsSuperAdmin?'<div class="panel simple-panel"><h3>Segurança da conta</h3><p class="muted">A alteração de senha exige a senha atual.</p><button type="button" id="master_pw_shortcut" class="btn secondary">Alterar minha senha</button></div>':'<div class="panel simple-panel"><div class="panel-title"><h3>Trocar senha</h3></div>'
  +'<div id="pw_msg"></div>'
  +'<label class="lbl" for="pw_new">Senha nova</label><input id="pw_new" class="inp" type="password" autocomplete="new-password" placeholder="Pelo menos 8 caracteres">'
  +'<label class="lbl" for="pw_again">Repita a senha nova</label><input id="pw_again" class="inp" type="password" autocomplete="new-password">'
@@ -42,6 +42,7 @@ function profilePage(){
  if(currentRole==='admin'&&root.MatosAvatar)root.MatosAvatar.mountPicker();
  E('pf_save').onclick=saveName;
  if(E('pw_save'))E('pw_save').onclick=savePassword;
+  if(E('master_pw_shortcut'))E('master_pw_shortcut').onclick=function(){if(!matosIsSuperAdmin)return;goQuick('Configurações');window.MatosSettings.open('Minha senha')};
  E('pf_nome').onkeydown=function(e){if(e.key==='Enter')saveName()};
 }
 async function saveName(){
