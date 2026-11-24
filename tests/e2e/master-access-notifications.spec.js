@@ -124,6 +124,18 @@ test('proprietário consulta relatórios e notificações, sem botões de grava�
  await expect(page.locator('#session_clock')).toBeVisible();
 });
 
+test('proprietário vinculado vê somente painel, relatórios e seus alertas',async({page})=>{
+ await openRole(page,'proprietario',false);
+ await expect(page.locator('.side [data-page="Dashboard"]')).toHaveCount(1);
+ await expect(page.locator('.side [data-page="Relatórios"]')).toHaveCount(1);
+ await expect(page.locator('.side [data-page="Alertas"]')).toHaveCount(1);
+ for(const restricted of ['Cadastros','Inquilinos','Pagamentos','IPTU','Chamados','Acessos','Configurações']){
+  await expect(page.locator('.side [data-page="'+restricted+'"]')).toHaveCount(0);
+ }
+ await expect(page.locator('.action-panel button')).toHaveCount(1);
+ await expect(page.locator('#dashIptuOpen')).toHaveCount(0);
+});
+
 test('recuperacao encaminhada ao canal restrito, sem expor qual conta existe',async({page})=>{
  test.skip(process.env.MATOS_E2E_EXTERNAL==='1','Recuperacao simulada somente em ambiente local.');
  const calls=[];
