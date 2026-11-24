@@ -114,6 +114,29 @@ describe('Componentes visuais da carteira Matos', () => {
     expect(onEdit).toHaveBeenCalledOnce();
   });
 
+  it('não conta a mensagem de tabela vazia como contrato cadastrado', () => {
+    const { api, dom, document } = harness();
+    const root = document.getElementById('content');
+    root.innerHTML = api.filterHTML('portfolio_contracts_filter', 'Filtrar contratos', 'contratos') +
+      '<table class="contracts-table"><tbody><tr><td class="empty">Nenhum contrato cadastrado.</td></tr></tbody></table>';
+    const options = {
+      root,
+      id: 'portfolio_contracts_filter',
+      rows: '.contracts-table tbody tr[data-contract-row]',
+      noun: 'contratos',
+    };
+    expect(api.bindFilter(options)).toBe(true);
+    expect(document.getElementById('portfolio_contracts_filter_count').textContent).toBe('0 de 0 contratos');
+    const search = document.getElementById('portfolio_contracts_filter');
+    search.value = 'galeria';
+    search.dispatchEvent(new dom.window.Event('input', { bubbles: true }));
+    expect(document.getElementById('portfolio_contracts_filter_empty').hidden).toBe(false);
+    expect(root.querySelector('.empty').textContent).toContain('Nenhum contrato');
+    search.value = '';
+    search.dispatchEvent(new dom.window.Event('input', { bubbles: true }));
+    expect(document.getElementById('portfolio_contracts_filter_empty').hidden).toBe(true);
+  });
+
   it('carrega o design exclusivamente nas áreas da carteira e na versão Cloudflare', () => {
     expect(index).toContain('/portfolio-ui.css?v=1');
     expect(index).toContain('/portfolio-ui.js?v=2');
