@@ -21,13 +21,22 @@ As ações e linhas visíveis permanecem determinadas pelos fluxos legados, JWT 
 
 Filtros têm rótulo, status `aria-live`, estados vazios e foco destacado. As tabelas preservam rolagem horizontal em celulares; os indicadores reorganizam-se em duas colunas. Os formulários móveis usam uma coluna e áreas de toque maiores. `prefers-reduced-motion` evita animações desnecessárias.
 
-## Preparação para React
+## Primeira ilha React: indicadores da tela Cadastros
 
-Estes elementos são uma **etapa de extração de responsabilidades**, não uma migração para React. Quando houver justificativa, cada componente poderá ser substituído separadamente por um componente React tipado sem refazer as chamadas Supabase, os formulários, as permissões ou a navegação. Nenhuma dependência ou bundler novo foi acrescentado nesta etapa.
+A modernização já começou, de forma isolada. O componente TSX `src/react/portfolio-stats.tsx` monta com `React 19` e `react-dom/client.createRoot` **somente os quatro indicadores de imóveis**, sem assumir o restante da página.
+
+- O JavaScript continua servido localmente em `portfolio-react.js`, pré-compilado pelo esbuild com JSX automático, versionado no Git e servido pela Vercel e Cloudflare. **Não há importação de React por CDN.**
+- A tela Cadastros prepara os mesmos dados e o HTML original com `MatosPortfolioUI.statsHTML`. Se o bundle opcional falhar, os cartões legados continuam visíveis.
+- Se React estiver disponível, `window.MatosReactPortfolio.mountStats` substitui apenas o conteúdo dos quatro cartões. Os agrupamentos, filtros, botões, formulários e PDFs permanecem controlados pelo código existente.
+- Há um `MutationObserver` para desmontar a ilha quando o container sai do DOM; reabrir Cadastros cria uma nova raiz. O componente não recebe tokens, CPF, contratos, dados bancários nem acesso ao Supabase.
+- O bundle é gerado por `npm run build:react`. Sempre que alterar o TSX, execute esse comando e versione o arquivo gerado; `npm run verify:react-build` impede divergências no CI.
+- `npm run typecheck` valida tanto o motor de Busca global quanto a ilha React estritamente, via `tsconfig.react.json`.
+
+A adoção das próximas ilhas (por exemplo, filtros ou listas) depende de testes funcionais e de evidência de benefício, sem reescrever a aplicação.
 
 ## Validação e rollback
 
-1. `npm ci && npm run quality && npm run build:cloudflare`.
+1. `npm ci && npm run quality && npm run build:cloudflare` (incluindo React e build reproduzível).
 2. Playwright (desktop e Pixel mobile) em Cadastros, Inquilinos e Contratos, incluindo pesquisa, PDF, abertura e fechamento dos formulários.
 3. Preview READY no SHA do PR e CI verde antes de merge; confirmar a produção após integração.
 4. Para reverter, reverter o PR: nenhum dado ou migração de banco está envolvido.
