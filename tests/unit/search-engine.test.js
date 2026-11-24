@@ -99,7 +99,7 @@ describe('Vínculos tipados da carteira imobiliária', () => {
     const contracts = Array.from({ length: 1500 }, (_, i) => ({
       id: 'c' + i, inquilino_id: 't' + i, imovel_id: 'p' + i,
     }));
-    const links = linkCatalog({ imoveis: properties, contratos });
+    const links = linkCatalog({ imoveis: properties, contratos: contracts });
     expect(links.homeForTenant('t0')).toBe(properties[0]);
     expect(links.homeForTenant('t1499')).toBe(properties[1499]);
     expect(links.propertiesById.size).toBe(1500);
