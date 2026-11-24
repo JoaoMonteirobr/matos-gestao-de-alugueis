@@ -45,6 +45,8 @@
   "owner-finance.js",
   "payment-docs.js",
   "pdf-lazy-loader.js",
+  "portfolio-ui.css",
+  "portfolio-ui.js",
   "property-files.js",
   "pwa.js",
   "responsive-fixes.css",
