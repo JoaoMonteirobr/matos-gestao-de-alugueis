@@ -18,7 +18,7 @@
     "typecheck": "tsc --noEmit --project tsconfig.search.json && tsc --noEmit --project tsconfig.react.json",
     "build:search": "tsc --project tsconfig.search.json",
     "verify:search-build": "npm run build:search && git diff --exit-code -- search-engine.js",
-    "build:react": "esbuild src/react/portfolio-stats.tsx --bundle --format=iife --platform=browser --target=es2020 --minify --outfile=portfolio-react.js",
+    "build:react": "esbuild src/react/portfolio-stats.tsx --bundle --jsx=automatic --format=iife --platform=browser --target=es2020 --minify --outfile=portfolio-react.js",
     "verify:react-build": "npm run build:react && git diff --exit-code -- portfolio-react.js"
   },
   "devDependencies": {
