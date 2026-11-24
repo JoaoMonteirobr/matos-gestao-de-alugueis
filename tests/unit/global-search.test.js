@@ -131,8 +131,8 @@ describe('Busca global do Matos', () => {
 
   it('inclui CSS e JavaScript na página e na cópia Cloudflare', () => {
     expect(html).toContain('/global-search.css?v=1');
-    expect(html).toContain('/global-search.js?v=2');
-    expect(html).toContain('<script type="module" src="/search-engine.js?v=1"></script><script type="module" src="/global-search.js?v=2"></script>');
+    expect(html).toContain('/global-search.js?v=3');
+    expect(html).toContain('<script type="module" src="/search-engine.js?v=2"></script><script type="module" src="/global-search.js?v=3"></script>');
     expect(assets).toContain('global-search.css');
     expect(assets).toContain('global-search.js');
   });
