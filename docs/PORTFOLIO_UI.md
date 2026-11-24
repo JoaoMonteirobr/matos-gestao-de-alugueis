@@ -43,7 +43,7 @@ O filtro da tela **Cadastros** agora também é uma pequena ilha React, sem modi
 - Na ausência de React, `MatosPortfolioUI.bindFilter(options)` instala o evento original no input HTML já presente. O filtro e os indicadores continuam úteis sem o bundle.
 - O contador recebe atualização pelo estado do React; o aviso de busca sem resultados continua acessível na tela.
 - Ao sair de Cadastros, um observador desmonta tanto os indicadores quanto o filtro. Ao reabrir, ambos começam com valores limpos, sem guardar uma pesquisa anterior.
-- Apenas a tela Cadastros é afetada. Contratos e Inquilinos continuam usando seus componentes de busca anteriores.
+- Esta segunda ilha afetou inicialmente somente Cadastros; a terceira etapa abaixo estende o componente React a Contratos. Inquilinos continua usando sua busca anterior.
 
 O bundle React local é atualizado junto com o código TSX; `verify:react-build` impede alterações não versionadas. A integração não recebe token de autenticação, não consulta APIs e não modifica o acesso a PDFs e contratos.
 
