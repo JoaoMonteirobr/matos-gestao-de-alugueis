@@ -38,6 +38,41 @@
       'Nenhum resultado para essa pesquisa. Limpe o campo para ver todos os registros.</p>';
   }
 
+  // Uma única rotina de filtragem para o controle legado e a ilha React.
+  // Opera exclusivamente sobre linhas já autorizadas e exibidas na página.
+  function filterRows(options, rawQuery) {
+    if (!options || !options.root || !options.rows) return { visible: 0, total: 0 };
+    var root = options.root;
+    var query = normalize(rawQuery);
+    var rows = Array.prototype.slice.call(root.querySelectorAll(options.rows));
+    var visible = 0;
+    rows.forEach(function (row) {
+      var group = options.groups && row.closest(options.groups);
+      var context = group && group.querySelector('.panel-title h3');
+      var found = !query || normalize(row.textContent + ' ' + (context ? context.textContent : '')).includes(query);
+      row.hidden = !found;
+      if (found) visible++;
+    });
+    if (options.sections) {
+      Array.prototype.forEach.call(root.querySelectorAll(options.sections), function (section) {
+        section.hidden = !Array.prototype.some.call(section.querySelectorAll(options.rows), function (row) {
+          return !row.hidden;
+        });
+      });
+    }
+    if (options.groups) {
+      Array.prototype.forEach.call(root.querySelectorAll(options.groups), function (group) {
+        group.hidden = !Array.prototype.some.call(group.querySelectorAll(options.rows), function (row) {
+          return !row.hidden;
+        });
+      });
+    }
+    var empty = options.id && root.querySelector('#' + options.id + '_empty');
+    if (empty) empty.hidden = !query || visible > 0;
+    return { visible: visible, total: rows.length };
+  }
+
+  // Compatibilidade: mantém os IDs e eventos do filtro clássico caso React falhe.
   function bindFilter(options) {
     if (!options || !options.root || !options.id || !options.rows) return false;
     var root = options.root;
@@ -45,33 +80,9 @@
     var count = root.querySelector('#' + options.id + '_count');
     var empty = root.querySelector('#' + options.id + '_empty');
     if (!input || !count || !empty) return false;
-    var rows = Array.prototype.slice.call(root.querySelectorAll(options.rows));
     function update() {
-      var query = normalize(input.value);
-      var visible = 0;
-      rows.forEach(function (row) {
-        var group = options.groups && row.closest(options.groups);
-        var context = group && group.querySelector('.panel-title h3');
-        var found = !query || normalize(row.textContent + ' ' + (context ? context.textContent : '')).includes(query);
-        row.hidden = !found;
-        if (found) visible++;
-      });
-      if (options.sections) {
-        Array.prototype.forEach.call(root.querySelectorAll(options.sections), function (section) {
-          section.hidden = !Array.prototype.some.call(section.querySelectorAll(options.rows), function (row) {
-            return !row.hidden;
-          });
-        });
-      }
-      if (options.groups) {
-        Array.prototype.forEach.call(root.querySelectorAll(options.groups), function (group) {
-          group.hidden = !Array.prototype.some.call(group.querySelectorAll(options.rows), function (row) {
-            return !row.hidden;
-          });
-        });
-      }
-      count.textContent = visible + ' de ' + rows.length + ' ' + (options.noun || 'registros');
-      empty.hidden = !query || visible > 0;
+      var result = filterRows(options, input.value);
+      count.textContent = result.visible + ' de ' + result.total + ' ' + (options.noun || 'registros');
     }
     input.addEventListener('input', update);
     update();
@@ -82,6 +93,7 @@
     statsHTML: statsHTML,
     filterHTML: filterHTML,
     bindFilter: bindFilter,
+    filterRows: filterRows,
     normalize: normalize,
     escapeHtml: escapeHtml,
   };

@@ -34,6 +34,19 @@ A modernização já começou, de forma isolada. O componente TSX `src/react/por
 
 A adoção das próximas ilhas (por exemplo, filtros ou listas) depende de testes funcionais e de evidência de benefício, sem reescrever a aplicação.
 
+## Segunda ilha React: filtro local de imóveis
+
+O filtro da tela **Cadastros** agora também é uma pequena ilha React, sem modificar o conteúdo ou a propriedade da tabela de imóveis. O componente `PortfolioFilter` gerencia apenas campo de pesquisa, texto do contador e atualização do valor. O código legado continua responsável pela seleção das linhas, grupos por endereço e estado de nenhum resultado.
+
+- `MatosPortfolioUI.filterRows(options, query)` é a lógica de filtragem compartilhada e devolve `{ visible, total }`. Ela não faz consultas Supabase nem altera registros.
+- A interface React chama essa função quando o usuário digita. Continua ignorando acentos, incluindo nomes de unidades, inquilinos e endereços do agrupamento.
+- Na ausência de React, `MatosPortfolioUI.bindFilter(options)` instala o evento original no input HTML já presente. O filtro e os indicadores continuam úteis sem o bundle.
+- O contador recebe atualização pelo estado do React; o aviso de busca sem resultados continua acessível na tela.
+- Ao sair de Cadastros, um observador desmonta tanto os indicadores quanto o filtro. Ao reabrir, ambos começam com valores limpos, sem guardar uma pesquisa anterior.
+- Apenas a tela Cadastros é afetada. Contratos e Inquilinos continuam usando seus componentes de busca anteriores.
+
+O bundle React local é atualizado junto com o código TSX; `verify:react-build` impede alterações não versionadas. A integração não recebe token de autenticação, não consulta APIs e não modifica o acesso a PDFs e contratos.
+
 ## Validação e rollback
 
 1. `npm ci && npm run quality && npm run build:cloudflare` (incluindo React e build reproduzível).

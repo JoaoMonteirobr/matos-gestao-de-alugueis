@@ -212,9 +212,18 @@ test('ilha React renderiza os cartões de imóveis e preserva navegação e filt
   await expect(island).toContainText('Imóveis cadastrados');
   await expect(island).toContainText('Ocupados');
   await expect(island).toContainText('Endereços');
-  const search = page.locator('#portfolio_properties_filter');
+  const filterIsland = page.locator('.matos-portfolio-properties .portfolio-filterbar[data-react-filter="mounted"]');
+  await expect(filterIsland).toBeVisible();
+  const search = filterIsland.locator('#portfolio_properties_filter');
   await search.fill('coronel alexandrino');
   await expect(page.locator('#portfolio_properties_filter_count')).toContainText('1 de 1 imóveis');
+  await search.fill('JOSE');
+  await expect(page.locator('#portfolio_properties_filter_count')).toContainText('1 de 1 imóveis');
+  await search.fill('sem resultado');
+  await expect(page.locator('#portfolio_properties_filter_count')).toContainText('0 de 1 imóveis');
+  await expect(page.locator('#portfolio_properties_filter_empty')).toBeVisible();
+  await search.fill('');
+  await expect(page.locator('#portfolio_properties_filter_empty')).toBeHidden();
   await page.locator('#newProperty').click();
   await expect(page.locator('#modal.matos-portfolio-dialog')).toBeVisible();
   await page.locator('#cancelmodal').click();
@@ -223,6 +232,7 @@ test('ilha React renderiza os cartões de imóveis e preserva navegação e filt
   await expect(page.locator('[data-react-portfolio]')).toHaveCount(0);
   await page.evaluate(() => window.goQuick('Cadastros'));
   await expect(page.locator('.matos-portfolio-properties .portfolio-stats[data-react-portfolio="mounted"]')).toBeVisible();
+  await expect(page.locator('.matos-portfolio-properties .portfolio-filterbar[data-react-filter="mounted"]')).toBeVisible();
   await expect(page.locator('.matos-portfolio-properties .portfolio-stat')).toHaveCount(4);
 });
 
@@ -234,7 +244,14 @@ test('falha opcional no bundle React preserva cartões HTML e ações', async ({
   await expect(fallback).toBeVisible();
   await expect(fallback.locator('.portfolio-stat')).toHaveCount(4);
   await expect(fallback).not.toHaveAttribute('data-react-portfolio', 'mounted');
-  await expect(page.locator('#portfolio_properties_filter')).toBeVisible();
+  await expect(page.locator('.matos-portfolio-properties .portfolio-filterbar')).not.toHaveAttribute('data-react-filter', 'mounted');
+  const legacyFilter = page.locator('#portfolio_properties_filter');
+  await legacyFilter.fill('coronel');
+  await expect(page.locator('#portfolio_properties_filter_count')).toContainText('1 de 1 imóveis');
+  await legacyFilter.fill('inexistente');
+  await expect(page.locator('#portfolio_properties_filter_empty')).toBeVisible();
+  await legacyFilter.fill('');
+  await expect(page.locator('#portfolio_properties_filter_empty')).toBeHidden();
   await page.locator('#newProperty').click();
   await expect(page.locator('#modal.matos-portfolio-dialog')).toBeVisible();
   await page.locator('#cancelmodal').click();

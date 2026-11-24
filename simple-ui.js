@@ -319,7 +319,15 @@ async function cadastrosPage(){
  if(react&&typeof react.mountStats==='function'){
   react.mountStats(E('content').querySelector('.matos-portfolio-properties .portfolio-stats'),summaryItems,'Resumo de imóveis')
  }
- if(ui)ui.bindFilter({root:E('content'),id:'portfolio_properties_filter',rows:'.portfolio-table tbody tr',sections:'.property-subgroup',groups:'.property-address-group',noun:'imóveis'});
+ var filterOptions={root:E('content'),id:'portfolio_properties_filter',rows:'.portfolio-table tbody tr',sections:'.property-subgroup',groups:'.property-address-group',noun:'imóveis'};
+ var filterMounted=false;
+ if(ui&&react&&typeof react.mountFilter==='function'&&typeof ui.filterRows==='function'){
+  filterMounted=react.mountFilter(E('content').querySelector('.matos-portfolio-properties .portfolio-filterbar'),ims.length,function(query){
+   return ui.filterRows(filterOptions,query)
+  })
+ }
+ // Filtro legado continua pronto mesmo quando o JavaScript React estiver indisponível.
+ if(ui&&!filterMounted)ui.bindFilter(filterOptions);
  if(E('newProperty'))E('newProperty').onclick=function(){openPropertyRegistration(inqs)}
 }
 // Abre o cadastro integrado: imóvel e, se ocupado, dados obrigatórios do inquilino.

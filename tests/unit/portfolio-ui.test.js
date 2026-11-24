@@ -71,6 +71,31 @@ describe('Componentes visuais da carteira Matos', () => {
     expect(document.getElementById('portfolio_properties_filter_empty').hidden).toBe(true);
   });
 
+  it('compartilha a mesma filtragem de imóveis entre React e listener legado', () => {
+    const { api, document } = harness();
+    const root = document.getElementById('content');
+    root.innerHTML = api.filterHTML('portfolio_properties_filter', 'Filtrar imóveis', 'imóveis') +
+      '<section class="property-address-group"><div class="panel-title"><h3>Coronel Alexandrino</h3></div>' +
+      '<div class="property-subgroup"><table class="portfolio-table"><tbody>' +
+      '<tr><td>Loja 101</td><td>José</td></tr><tr><td>Loja 102</td><td>Maria</td></tr>' +
+      '</tbody></table></div></section>' +
+      '<section class="property-address-group"><div class="panel-title"><h3>Major Salinas</h3></div>' +
+      '<div class="property-subgroup"><table class="portfolio-table"><tbody>' +
+      '<tr><td>Galpão</td><td>Daniel</td></tr></tbody></table></div></section>';
+    const options = { root, id: 'portfolio_properties_filter', rows: '.portfolio-table tbody tr',
+      groups: '.property-address-group', sections: '.property-subgroup', noun: 'imóveis' };
+    expect(api.filterRows(options, 'CORONEL')).toEqual({ visible: 2, total: 3 });
+    expect(root.querySelectorAll('tr[hidden]')).toHaveLength(1);
+    expect(api.filterRows(options, 'jose')).toEqual({ visible: 1, total: 3 });
+    expect(api.filterRows(options, 'inexistente')).toEqual({ visible: 0, total: 3 });
+    expect(document.querySelector('#portfolio_properties_filter_empty').hidden).toBe(false);
+    expect(api.filterRows(options, '')).toEqual({ visible: 3, total: 3 });
+    expect(root.querySelectorAll('tr[hidden]')).toHaveLength(0);
+    expect(document.querySelector('#portfolio_properties_filter_empty').hidden).toBe(true);
+    expect(api.bindFilter(options)).toBe(true);
+    expect(document.getElementById('portfolio_properties_filter_count').textContent).toBe('3 de 3 imóveis');
+  });
+
   it('mantém botões e listeners operacionais ao filtrar contratos', () => {
     const { api, dom, document } = harness();
     const root = document.getElementById('content');
@@ -91,8 +116,8 @@ describe('Componentes visuais da carteira Matos', () => {
 
   it('carrega o design exclusivamente nas áreas da carteira e na versão Cloudflare', () => {
     expect(index).toContain('/portfolio-ui.css?v=1');
-    expect(index).toContain('/portfolio-ui.js?v=1');
-    expect(index.indexOf('/theme-led.js?v=15')).toBeLessThan(index.indexOf('/portfolio-ui.js?v=1'));
+    expect(index).toContain('/portfolio-ui.js?v=2');
+    expect(index.indexOf('/theme-led.js?v=15')).toBeLessThan(index.indexOf('/portfolio-ui.js?v=2'));
     expect(assets).toContain('portfolio-ui.css');
     expect(assets).toContain('portfolio-ui.js');
     expect(source).toContain('matos-portfolio-properties');
