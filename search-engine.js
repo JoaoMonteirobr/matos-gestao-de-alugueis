@@ -1,3 +1,8 @@
+/**
+ * Associa os registros em O(P + I + C), sem realizar novas consultas.
+ * A prioridade da associação é a mesma do código legado: imóvel vinculado
+ * diretamente ao inquilino, ou primeiro contrato da lista como alternativa.
+ */
 export function linkCatalog(data) {
     const properties = data.imoveis ?? [];
     const tenants = data.inquilinos ?? [];
