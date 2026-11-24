@@ -151,7 +151,7 @@ describe('Avatar do administrador — foto privada ou emoji',()=>{
   expect(css).toContain('@media(prefers-reduced-motion:reduce)');
   expect(index).toContain('/avatar-admin.js?v=1');
   expect(index).toContain('/avatar-admin.css?v=1');
-  expect(index).toContain('/meu-perfil.js?v=3');
-  expect(index).toContain('/app1.js?v=20261122-1');
+  expect(index).toContain('/meu-perfil.js?v=4');
+  expect(index).toContain('/app1.js?v=20261123-2');
  });
 });

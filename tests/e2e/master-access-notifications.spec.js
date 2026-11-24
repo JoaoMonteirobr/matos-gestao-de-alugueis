@@ -76,6 +76,10 @@ test('conta principal: configurações e senha exclusivas, contador completo e m
  await expect(page.locator('#master_pw_current')).toBeVisible();
  await expect(page.locator('#master_pw_new')).toBeVisible();
  await expect(page.locator('#master_pw_again')).toBeVisible();
+ await page.evaluate(()=>goQuick('Meu perfil'));
+ await expect(page.locator('#master_pw_shortcut')).toBeVisible();
+ await page.locator('#master_pw_shortcut').click();
+ await expect(page.locator('#master_pw_current')).toBeVisible();
 });
 
 test('administrador operacional: cadastro e pagamentos sem gerenciamento, logins privados',async({page})=>{
@@ -87,6 +91,7 @@ test('administrador operacional: cadastro e pagamentos sem gerenciamento, logins
  await expect(page.locator('.side [data-page="Acessos"]')).toHaveCount(0);
  await expect(page.locator('.side [data-page="Configurações"]')).toHaveCount(0);
  await expect(page.locator('.side [data-page="Contratos"]')).toHaveCount(0);
+ await expect(page.locator('.action-panel button')).toHaveCount(2);
  await expect(page.locator('#notify_count')).toHaveText('1');
  await page.locator('#notify_bell').click();
  await expect(page.locator('#notify_push')).toBeHidden();
@@ -102,6 +107,13 @@ test('proprietário consulta relatórios e notificações, sem botões de grava�
  await openRole(page,'proprietario_consulta',false);
  await expect(page.locator('.side [data-page="Relatórios"]')).toHaveCount(1);
  await expect(page.locator('.side [data-page="Alertas"]')).toHaveCount(1);
+ await expect(page.locator('.side [data-page="Cadastros"]')).toHaveCount(0);
+ await expect(page.locator('.side [data-page="Pagamentos"]')).toHaveCount(0);
+ await expect(page.locator('.side [data-page="IPTU"]')).toHaveCount(0);
+ await expect(page.locator('.side [data-page="Inquilinos"]')).toHaveCount(0);
+ await expect(page.locator('.action-panel button')).toHaveCount(1);
+ await expect(page.locator('.action-panel')).toContainText('Relatório mensal');
+ await expect(page.locator('#dashIptuOpen')).toHaveCount(0);
  await expect(page.locator('.side [data-page="Configurações"]')).toHaveCount(0);
  await expect(page.locator('#notify_count')).toHaveText('1');
  await page.locator('#notify_bell').click();
@@ -110,4 +122,39 @@ test('proprietário consulta relatórios e notificações, sem botões de grava�
  await expect(page.locator('#push_test_remote')).toHaveCount(0);
  await expect(page.locator('#alerts_list')).not.toContainText('Novo acesso ao sistema');
  await expect(page.locator('#session_clock')).toBeVisible();
+});
+
+test('proprietário vinculado vê somente painel, relatórios e seus alertas',async({page})=>{
+ await openRole(page,'proprietario',false);
+ await expect(page.locator('.side [data-page="Dashboard"]')).toHaveCount(1);
+ await expect(page.locator('.side [data-page="Relatórios"]')).toHaveCount(1);
+ await expect(page.locator('.side [data-page="Alertas"]')).toHaveCount(1);
+ for(const restricted of ['Cadastros','Inquilinos','Pagamentos','IPTU','Chamados','Acessos','Configurações']){
+  await expect(page.locator('.side [data-page="'+restricted+'"]')).toHaveCount(0);
+ }
+ await expect(page.locator('.action-panel button')).toHaveCount(1);
+ await expect(page.locator('#dashIptuOpen')).toHaveCount(0);
+});
+
+test('recuperacao encaminhada ao canal restrito, sem expor qual conta existe',async({page})=>{
+ test.skip(process.env.MATOS_E2E_EXTERNAL==='1','Recuperacao simulada somente em ambiente local.');
+ const calls=[];
+ await page.route('https://behmmbgbrsesxthsczdl.supabase.co/**',async(route)=>{
+  const u=new URL(route.request().url());
+  if(u.pathname==='/functions/v1/master-recovery'){
+   calls.push(route.request().postDataJSON());
+   return route.fulfill({status:200,contentType:'application/json',
+    headers:{'access-control-allow-origin':'*'},body:JSON.stringify({ok:true})});
+  }
+  if(u.pathname==='/auth/v1/recover')throw new Error('Recuperacao publica nao pode ser chamada pela tela');
+  return route.fulfill({status:200,contentType:'application/json',
+   headers:{'access-control-allow-origin':'*'},body:'{}'});
+ });
+ await page.goto('/');
+ await page.evaluate(async ()=>{
+  document.getElementById('email').value='usuario-nao-autorizado@example.invalid';
+  await recover();
+ });
+ await expect(page.locator('#msg')).toContainText('Se esta conta estiver habilitada para recuperação');
+ expect(calls).toEqual([{email:'usuario-nao-autorizado@example.invalid'}]);
 });

@@ -57,16 +57,15 @@ function proofHarness(kind) {
 }
 
 describe('Paridade de painel e comprovantes privados', () => {
-  it('exibe as mesmas áreas operacionais nos menus de administrador e proprietário', () => {
-    const start = ui.indexOf('var consultaMenus=');
+  it('separa as telas operacionais do administrador e a consulta do proprietário', () => {
+    const start = ui.indexOf('var adminBaseMenus=');
     const stop = ui.indexOf('// Liga cada tela', start);
     const evaluate = new Function('adminMenus', 'ownerMenus', 'tenantMenus', ui.slice(start, stop) + ';return {adminMain,consultaMenus}');
     const { adminMain, consultaMenus } = evaluate([], [], []);
-    expect(adminMain.slice(0, consultaMenus.length)).toEqual(consultaMenus);
-    expect(consultaMenus).toEqual([
-      'Dashboard','Cadastros','Inquilinos','Contratos','Pagamentos','IPTU','Chamados',
-      'Financeiro','Gastos','Relatórios','Alertas'
-    ]);
+    expect(consultaMenus).toEqual(['Dashboard','Relatórios','Alertas']);
+    expect(adminMain).toEqual(expect.arrayContaining(['Dashboard','Cadastros','Inquilinos','Contratos','Pagamentos','IPTU','Chamados','Financeiro','Gastos','Relatórios','Alertas']));
+    expect(adminMain).toContain('Pagamentos');
+    expect(consultaMenus).not.toContain('Pagamentos');
     expect(adminMain.slice(-2)).toEqual(['Acessos', 'Configurações']);
     expect(consultaMenus).not.toContain('Acessos');
     expect(consultaMenus).not.toContain('Configurações');

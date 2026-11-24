@@ -19,6 +19,9 @@ async function updateAuthPassword(token,password){
   body:JSON.stringify({password:password})
  })
 }
+async function revokeAuthSessions(token){
+  try{await request('/auth/v1/logout?scope=global',{method:'POST',headers:authHeaders(token)})}catch(e){}
+}
 async function passwordPanel(){
  if(!matosIsSuperAdmin||!session?.access_token){
   throw new Error('Configuração de senha restrita ao responsável pelo sistema.')

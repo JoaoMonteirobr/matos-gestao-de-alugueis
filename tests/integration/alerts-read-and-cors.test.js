@@ -53,7 +53,7 @@ describe('alertas simples, leitura privada e push com CORS', () => {
   it('carrega layout compacto e mantém teste remoto acessível', () => {
     expect(html).toContain('/alerts-ui.css?v=2');
     expect(html).toContain('/alerts.js?v=20261122-1');
-    expect(html).toContain('/notification-session.js?v=4');
+    expect(html).toContain('/notification-session.js?v=5');
     expect(css).toContain('@media(max-width:640px)');
     expect(css).toContain('.alerts-filter-bar');
     expect(page).toContain('id="push_test_remote"');
