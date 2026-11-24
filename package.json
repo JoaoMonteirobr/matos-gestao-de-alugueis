@@ -14,7 +14,10 @@
     "test:security": "vitest run tests/integration/security-hardening.test.js",
     "knip": "knip --include dependencies,unlisted",
     "mutation": "stryker run",
-    "quality": "npm run lint && npm run arch:check && npm run test:coverage && npm run knip"
+    "quality": "npm run lint && npm run arch:check && npm run test:coverage && npm run knip",
+    "typecheck": "tsc --noEmit --project tsconfig.search.json",
+    "build:search": "tsc --project tsconfig.search.json",
+    "verify:search-build": "npm run build:search && git diff --exit-code -- search-engine.js"
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.14",
@@ -26,7 +29,8 @@
     "@vitest/coverage-v8": "5.0.2",
     "jsdom": "30.1.1",
     "knip": "6.38.0",
-    "vitest": "5.0.2"
+    "vitest": "5.0.2",
+    "typescript": "7.0.2"
   },
   "overrides": {
     "qs": "6.16.0"
