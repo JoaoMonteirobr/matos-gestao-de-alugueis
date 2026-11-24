@@ -202,3 +202,40 @@ test('contratos mostram prazos e o filtro preserva controles de PDF', async ({ p
   await filter.fill('');
   await expect(page.locator('[data-contract-attach]')).toBeVisible();
 });
+
+test('ilha React renderiza os cartões de imóveis e preserva navegação e filtros', async ({ page }) => {
+  await openAccount(page, 'admin', true);
+  await page.evaluate(() => window.goQuick('Cadastros'));
+  const island = page.locator('.matos-portfolio-properties .portfolio-stats[data-react-portfolio="mounted"]');
+  await expect(island).toBeVisible();
+  await expect(island.locator('.portfolio-stat')).toHaveCount(4);
+  await expect(island).toContainText('Imóveis cadastrados');
+  await expect(island).toContainText('Ocupados');
+  await expect(island).toContainText('Endereços');
+  const search = page.locator('#portfolio_properties_filter');
+  await search.fill('coronel alexandrino');
+  await expect(page.locator('#portfolio_properties_filter_count')).toContainText('1 de 1 imóveis');
+  await page.locator('#newProperty').click();
+  await expect(page.locator('#modal.matos-portfolio-dialog')).toBeVisible();
+  await page.locator('#cancelmodal').click();
+  await page.evaluate(() => window.goQuick('Contratos'));
+  await expect(page.locator('.matos-portfolio-contracts')).toBeVisible();
+  await expect(page.locator('[data-react-portfolio]')).toHaveCount(0);
+  await page.evaluate(() => window.goQuick('Cadastros'));
+  await expect(page.locator('.matos-portfolio-properties .portfolio-stats[data-react-portfolio="mounted"]')).toBeVisible();
+  await expect(page.locator('.matos-portfolio-properties .portfolio-stat')).toHaveCount(4);
+});
+
+test('falha opcional no bundle React preserva cartões HTML e ações', async ({ page }) => {
+  await page.route('**/portfolio-react.js*', async (route) => route.abort());
+  await openAccount(page, 'admin', true);
+  await page.evaluate(() => window.goQuick('Cadastros'));
+  const fallback = page.locator('.matos-portfolio-properties .portfolio-stats');
+  await expect(fallback).toBeVisible();
+  await expect(fallback.locator('.portfolio-stat')).toHaveCount(4);
+  await expect(fallback).not.toHaveAttribute('data-react-portfolio', 'mounted');
+  await expect(page.locator('#portfolio_properties_filter')).toBeVisible();
+  await page.locator('#newProperty').click();
+  await expect(page.locator('#modal.matos-portfolio-dialog')).toBeVisible();
+  await page.locator('#cancelmodal').click();
+});
