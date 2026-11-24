@@ -60,7 +60,7 @@ async function openAccount(page, role, superadmin = false) {
     if (uri.pathname === '/rest/v1/rpc/gerar_alertas_operacionais') return respond(0);
     const entity = uri.pathname.replace('/rest/v1/', '');
     if (Object.hasOwn(DB, entity)) {
-      if (uri.searchParams.has('limit')) requests.push({ entity, auth: route.request().headers().authorization });
+      if (uri.searchParams.has('limit')) requests.push({ entity, auth: route.request().headers().authorization, order: uri.searchParams.get('order') });
       const offset = Number(uri.searchParams.get('offset') || 0);
       return respond(offset === 0 ? DB[entity] : []);
     }
@@ -87,6 +87,7 @@ test('administrador encontra registros de todas as categorias sem expor token', 
   await expect(page.locator('.matos-search-result')).toHaveCount(5);
   expect(requests.map((x) => x.entity).sort()).toEqual(Object.keys(DB).sort());
   expect(requests.every((r) => r.auth === 'Bearer synthetic-search-token')).toBe(true);
+  expect(requests.every((r) => r.order === 'created_at.desc,id.desc')).toBe(true);
 
   await page.locator('[data-search-type="cobrancas"]').click();
   await expect(page.locator('.matos-search-result')).toHaveCount(1);
