@@ -110,7 +110,7 @@
       var property = home && propertyLabel(home) || 'Sem imóvel vinculado';
       result.push(entry('inquilinos', t, t.nome || 'Inquilino', property, t.status, [
         ['Nome', t.nome || '—'], ['Imóvel', property], ['Situação', t.status || '—'],
-      ], [t.telefone, t.email, t.cpf_cnpj, property]));
+      ], [t.telefone, t.email, t.cpf_cnpj, property, home && [home.endereco, home.numero, home.bairro].join(' ')]));
     });
     contracts.forEach(function (c) {
       var p = byProperty(c.imovel_id), t = byTenant(c.inquilino_id);
@@ -121,7 +121,7 @@
         ['Imóvel', place], ['Inquilino', person], ['Início', brDate(c.data_inicio)],
         ['Término', brDate(c.data_fim)], ['Aluguel atual', brMoney(c.aluguel_atual)],
         ['Situação', c.status || '—'],
-      ], [place, person, c.data_inicio, c.data_fim, brMoney(c.aluguel_atual), 'locação']));
+      ], [place, person, c.data_inicio, c.data_fim, brMoney(c.aluguel_atual), 'locação', p && [p.endereco, p.numero, p.bairro].join(' ')]));
     });
     (data.cobrancas || []).forEach(function (pay) {
       var ct = cById.get(pay.contrato_id);
@@ -139,7 +139,7 @@
         ['Vencimento', brDate(pay.vencimento)], ['Previsto', brMoney(total)],
         ['Recebido', brMoney(paid)], ['Situação', situation],
       ], [person, place, pay.competencia, pay.vencimento, brDate(pay.vencimento), pay.data_pagamento,
-        brMoney(total), brMoney(paid), String(total), String(paid), 'aluguel', 'recebimento']));
+        brMoney(total), brMoney(paid), String(total), String(paid), 'aluguel', 'recebimento', p && [p.endereco, p.numero, p.bairro].join(' ')]));
     });
     (data.manutencoes || []).forEach(function (call) {
       var p = byProperty(call.imovel_id), t = byTenant(call.inquilino_id);
@@ -151,7 +151,7 @@
           ['Categoria', category], ['Descrição', call.descricao || '—'],
           ['Imóvel', place], ['Inquilino', person], ['Abertura', brDate(call.data_abertura)],
           ['Prioridade', call.prioridade || '—'], ['Situação', call.status || '—'],
-        ], [call.descricao, call.prioridade, call.data_abertura, place, person, 'solicitação', 'reparo']));
+        ], [call.descricao, call.prioridade, call.data_abertura, place, person, 'solicitação', 'reparo', p && [p.endereco, p.numero, p.bairro].join(' ')]));
     });
     return result;
   }
