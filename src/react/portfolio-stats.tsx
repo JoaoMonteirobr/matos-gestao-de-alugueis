@@ -44,6 +44,25 @@ interface FilterProps {
   readonly onFilter: (query: string) => FilterResult;
 }
 
+interface FilterConfig {
+  readonly id: string;
+  readonly placeholder: string;
+  readonly noun: string;
+}
+
+const PROPERTY_FILTER: FilterConfig = {
+  id: 'portfolio_properties_filter',
+  placeholder: 'Filtrar por imóvel, endereço ou inquilino',
+  noun: 'imóveis',
+};
+
+const CONTRACT_FILTER: FilterConfig = {
+  id: 'portfolio_contracts_filter',
+  placeholder: 'Filtrar por imóvel, inquilino ou situação',
+  noun: 'contratos',
+};
+
+
 // Somente o filtro e o contador são responsabilidade do React.
 // Os registros continuam sendo exibidos e filtrados pelo código autorizado existente.
 function PortfolioFilter({ id, placeholder, noun, total, onFilter }: FilterProps): ReactNode {
@@ -142,6 +161,7 @@ function mountFilter(
   container: HTMLElement | null,
   total: number,
   onFilter: (query: string) => FilterResult,
+  config: FilterConfig = PROPERTY_FILTER,
 ): boolean {
   if (!container || !container.isConnected || !Number.isFinite(total) || typeof onFilter !== 'function') {
     return false;
@@ -154,9 +174,9 @@ function mountFilter(
     }
     filterRoot.render(
       <PortfolioFilter
-        id="portfolio_properties_filter"
-        placeholder="Filtrar por imóvel, endereço ou inquilino"
-        noun="imóveis"
+        id={config.id}
+        placeholder={config.placeholder}
+        noun={config.noun}
         total={Math.max(0, Math.trunc(total))}
         onFilter={onFilter}
       />,
@@ -170,16 +190,25 @@ function mountFilter(
   }
 }
 
+function mountContractsFilter(
+  container: HTMLElement | null,
+  total: number,
+  onFilter: (query: string) => FilterResult,
+): boolean {
+  return mountFilter(container, total, onFilter, CONTRACT_FILTER);
+}
+
 declare global {
   interface Window {
     MatosReactPortfolio?: {
       mountStats: typeof mountStats;
       mountFilter: typeof mountFilter;
+      mountContractsFilter: typeof mountContractsFilter;
       cleanup: typeof cleanup;
     };
   }
 }
 
-window.MatosReactPortfolio = { mountStats, mountFilter, cleanup };
+window.MatosReactPortfolio = { mountStats, mountFilter, mountContractsFilter, cleanup };
 
-export { PortfolioStats, PortfolioFilter, formatValue, mountStats, mountFilter, cleanup };
+export { PortfolioStats, PortfolioFilter, formatValue, mountStats, mountFilter, mountContractsFilter, cleanup };

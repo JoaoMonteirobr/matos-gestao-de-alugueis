@@ -156,7 +156,7 @@ describe('Configurações: cadastros e segurança do responsável', () => {
     expect(enhancements).toContain('if(current&&vals.indexOf(current)<0)vals.push(current)');
     expect(app2).toContain("'Imóveis':'imóvel'");
     expect(app2).toContain("'Contratos':'contrato'");
-    expect(html).toContain('/simple-ui.js?v=26');
+    expect(html).toContain('/simple-ui.js?v=27');
     expect(html).toContain('/app2.js?v=20261113-3');
     expect(html).toContain('/enhancements.js?v=20261108-2');
   });

@@ -380,7 +380,7 @@ async function contractsPage(){
   var actions=admin?'<td><div class="rowactions contract-row-actions">'+
    '<button type="button" data-contract-edit="'+esc(c.id)+'">Editar</button>'+
    '<button type="button" data-contract-delete="'+esc(c.id)+'">Excluir</button></div></td>':'';
-  return '<tr><td><b>'+esc(im&&im.nome||'—')+'</b></td><td>'+esc(t&&t.nome||'—')+
+  return '<tr data-contract-row="1"><td><b>'+esc(im&&im.nome||'—')+'</b></td><td>'+esc(t&&t.nome||'—')+
    '</td><td>'+dateBR(c.data_inicio)+'</td><td>'+dateBR(c.data_fim)+'</td><td>'+money(c.aluguel_atual)+
    '</td><td>'+badge+'</td><td class="contract-doc-cell">'+documentCell+'</td>'+actions+'</tr>'
  }).join('');
@@ -397,7 +397,16 @@ async function contractsPage(){
   (admin?'<th>Ações</th>':'')+'</tr></thead><tbody>'+
   (rows||'<tr><td colspan="'+(admin?8:7)+'" class="empty">Nenhum contrato cadastrado.</td></tr>')+
   '</tbody></table></div></div></div>';
- if(ui)ui.bindFilter({root:C,id:'portfolio_contracts_filter',rows:'.contracts-table tbody tr',noun:'contratos'});
+ var filterOptions={root:C,id:'portfolio_contracts_filter',rows:'.contracts-table tbody tr[data-contract-row]',noun:'contratos'};
+ var react=window.MatosReactPortfolio;
+ var reactFilterMounted=false;
+ if(ui&&react&&typeof react.mountContractsFilter==='function'&&typeof ui.filterRows==='function'){
+  reactFilterMounted=react.mountContractsFilter(C.querySelector('.matos-portfolio-contracts .portfolio-filterbar'),cs.length,function(query){
+   return ui.filterRows(filterOptions,query)
+  })
+ }
+ // Se o bundle React falhar, o filtro HTML existente continua operando normalmente.
+ if(ui&&!reactFilterMounted)ui.bindFilter(filterOptions);
  function notice(message,error){
   var node=E('contract-doc-status');
   if(node){node.className='contract-doc-status notice '+(error?'err':'success');node.textContent=message}

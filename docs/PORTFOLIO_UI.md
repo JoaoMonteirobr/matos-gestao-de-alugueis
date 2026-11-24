@@ -32,7 +32,7 @@ A modernização já começou, de forma isolada. O componente TSX `src/react/por
 - O bundle é gerado por `npm run build:react`. Sempre que alterar o TSX, execute esse comando e versione o arquivo gerado; `npm run verify:react-build` impede divergências no CI.
 - `npm run typecheck` valida tanto o motor de Busca global quanto a ilha React estritamente, via `tsconfig.react.json`.
 
-A adoção das próximas ilhas (por exemplo, filtros ou listas) depende de testes funcionais e de evidência de benefício, sem reescrever a aplicação.
+A expansão para outras áreas depende de testes funcionais e de benefício demonstrável, sem reescrever a aplicação.
 
 ## Segunda ilha React: filtro local de imóveis
 
@@ -43,9 +43,22 @@ O filtro da tela **Cadastros** agora também é uma pequena ilha React, sem modi
 - Na ausência de React, `MatosPortfolioUI.bindFilter(options)` instala o evento original no input HTML já presente. O filtro e os indicadores continuam úteis sem o bundle.
 - O contador recebe atualização pelo estado do React; o aviso de busca sem resultados continua acessível na tela.
 - Ao sair de Cadastros, um observador desmonta tanto os indicadores quanto o filtro. Ao reabrir, ambos começam com valores limpos, sem guardar uma pesquisa anterior.
-- Apenas a tela Cadastros é afetada. Contratos e Inquilinos continuam usando seus componentes de busca anteriores.
+- Esta segunda ilha afetou inicialmente somente Cadastros; a terceira etapa abaixo estende o componente React a Contratos. Inquilinos continua usando sua busca anterior.
 
 O bundle React local é atualizado junto com o código TSX; `verify:react-build` impede alterações não versionadas. A integração não recebe token de autenticação, não consulta APIs e não modifica o acesso a PDFs e contratos.
+
+## Terceira ilha React: filtro de contratos
+
+O filtro de **Contratos** agora utiliza o mesmo componente TSX `PortfolioFilter` já empregado na tela de imóveis, com configuração específica para o campo `portfolio_contracts_filter`, o texto de pesquisa e a contagem de contratos.
+
+- `MatosReactPortfolio.mountContractsFilter(container, total, onFilter)` renderiza apenas o controle de pesquisa e o contador. A tabela, os anexos privados em PDF e os botões de edição/exclusão permanecem no código legado.
+- O componente delega a filtragem a `MatosPortfolioUI.filterRows`, que trabalha exclusivamente com as linhas já renderizadas e autorizadas. A busca local ignora acentos e encontra imóvel, inquilino, situação e prazos mostrados.
+- Ao montar a página, o HTML original continua pronto. Se o bundle React não carregar, `bindFilter` mantém o filtro tradicional, inclusive contador e estado sem resultados.
+- Só as linhas reais recebem `data-contract-row`; a mensagem **Nenhum contrato cadastrado** não é contada. A listagem vazia exibe **0 de 0 contratos**, e o aviso de filtro sem resultados aparece ao pesquisar.
+- Ao trocar de página, o observador existente desmonta a ilha anterior e a nova tela abre com pesquisa limpa.
+- Os componentes React **não recebem** URL de armazenamento, PDF, credenciais, token de acesso, permissões ou funções de upload/exclusão. Os mecanismos originais e as políticas do Supabase permanecem intactos.
+
+A mudança usa o bundle React já instalado e minificado, sem CDN, dependência adicional ou alteração de esquema. É reversível pelo PR.
 
 ## Validação e rollback
 

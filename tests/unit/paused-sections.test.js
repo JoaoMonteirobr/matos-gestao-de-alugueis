@@ -50,7 +50,7 @@ describe('pausa temporária de Repasses, Documentos e Vistorias',()=>{
     expect(files).toContain('async function vistoriasPage()');
     expect(ui).toContain('async function simpleReports()');
     expect(index).toContain('/app1.js?v=20261123-2');
-    expect(index).toContain('/simple-ui.js?v=26');
+    expect(index).toContain('/simple-ui.js?v=27');
     expect(index).toContain('/owner-finance.js?v=20261108-3');
     expect(index).toContain('/property-files.js?v=20261108-3');
   });
