@@ -91,8 +91,8 @@ describe('Componentes visuais da carteira Matos', () => {
 
   it('carrega o design exclusivamente nas áreas da carteira e na versão Cloudflare', () => {
     expect(index).toContain('/portfolio-ui.css?v=1');
-    expect(index).toContain('/portfolio-ui.js?v=1');
-    expect(index.indexOf('/theme-led.js?v=15')).toBeLessThan(index.indexOf('/portfolio-ui.js?v=1'));
+    expect(index).toContain('/portfolio-ui.js?v=2');
+    expect(index.indexOf('/theme-led.js?v=15')).toBeLessThan(index.indexOf('/portfolio-ui.js?v=2'));
     expect(assets).toContain('portfolio-ui.css');
     expect(assets).toContain('portfolio-ui.js');
     expect(source).toContain('matos-portfolio-properties');
