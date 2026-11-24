@@ -84,11 +84,11 @@
     var properties = data.imoveis || [];
     var tenants = data.inquilinos || [];
     var contracts = data.contratos || [];
-    var pById = new Map(properties.map(function (x) { return [x.id, x]; }));
-    var tById = new Map(tenants.map(function (x) { return [x.id, x]; }));
-    var cById = new Map(contracts.map(function (x) { return [x.id, x]; }));
-    var byProperty = function (id) { return pById.get(id); };
-    var byTenant = function (id) { return tById.get(id); };
+    // Índices tipados e associações em tempo linear; sem consultas extras ao banco.
+    var linkedRecords = window.MatosSearchCore.linkCatalog(data);
+    var cById = linkedRecords.contractsById;
+    var byProperty = function (id) { return linkedRecords.propertiesById.get(id); };
+    var byTenant = function (id) { return linkedRecords.tenantsById.get(id); };
     var result = [];
 
     properties.forEach(function (p) {
@@ -101,9 +101,7 @@
       ], [p.tipo, p.cidade, resident && resident.nome]));
     });
     tenants.forEach(function (t) {
-      var linked = properties.find(function (p) { return p.inquilino_id === t.id; })
-        || (contracts.find(function (c) { return c.inquilino_id === t.id; }) || {}).imovel_id;
-      var home = typeof linked === 'string' ? byProperty(linked) : linked;
+      var home = linkedRecords.homeForTenant(t.id);
       var property = home && propertyLabel(home) || 'Sem imóvel vinculado';
       result.push(entry('inquilinos', t, t.nome || 'Inquilino', property, t.status, [
         ['Nome', t.nome || '—'], ['Imóvel', property], ['Situação', t.status || '—'],

@@ -1,3 +1,44 @@
+/**
+ * Associa os registros em O(P + I + C), sem realizar novas consultas.
+ * A prioridade da associação é a mesma do código legado: imóvel vinculado
+ * diretamente ao inquilino, ou primeiro contrato da lista como alternativa.
+ */
+export function linkCatalog(data) {
+    const properties = data.imoveis ?? [];
+    const tenants = data.inquilinos ?? [];
+    const contracts = data.contratos ?? [];
+    const propertiesById = new Map(properties.map((row) => [row.id, row]));
+    const tenantsById = new Map(tenants.map((row) => [row.id, row]));
+    const contractsById = new Map(contracts.map((row) => [row.id, row]));
+    const directPropertyByTenant = new Map();
+    const firstContractByTenant = new Map();
+    for (const property of properties) {
+        const tenantId = property.inquilino_id;
+        if (tenantId && !directPropertyByTenant.has(tenantId)) {
+            directPropertyByTenant.set(tenantId, property);
+        }
+    }
+    for (const contract of contracts) {
+        const tenantId = contract.inquilino_id;
+        if (tenantId && !firstContractByTenant.has(tenantId)) {
+            firstContractByTenant.set(tenantId, contract);
+        }
+    }
+    return {
+        propertiesById,
+        tenantsById,
+        contractsById,
+        homeForTenant(tenantId) {
+            if (!tenantId)
+                return undefined;
+            const direct = directPropertyByTenant.get(tenantId);
+            if (direct)
+                return direct;
+            const contract = firstContractByTenant.get(tenantId);
+            return contract?.imovel_id ? propertiesById.get(contract.imovel_id) : undefined;
+        },
+    };
+}
 const MAX_PER_TYPE = 8;
 const DEFAULT_LIMIT = 30;
 export function normalize(value) {
@@ -46,5 +87,5 @@ export function searchIndex(items, query, kind = 'todos', limit = DEFAULT_LIMIT)
     return output;
 }
 if (typeof window !== 'undefined') {
-    window.MatosSearchCore = { normalize, searchIndex };
+    window.MatosSearchCore = { normalize, searchIndex, linkCatalog };
 }
