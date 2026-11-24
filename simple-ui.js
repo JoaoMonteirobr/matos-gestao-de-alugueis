@@ -294,12 +294,13 @@ async function cadastrosPage(){
  await Promise.all([dbGet('imoveis'),dbGet('inquilinos')]);
  var ims=cache.imoveis||[],inqs=cache.inquilinos||[],groups=groupedByLocation(ims,function(im){return im});
  var ui=window.MatosPortfolioUI;
- var summary=ui?ui.statsHTML([
+ var summaryItems=[
   {label:'Imóveis cadastrados',value:ims.length},
   {label:'Ocupados',value:ims.filter(function(x){return x.status==='ocupado'}).length},
   {label:'Disponíveis',value:ims.filter(function(x){return x.status==='vago'||x.status==='desocupado'}).length},
   {label:'Endereços',value:groups.length}
- ],'Resumo de imóveis'):'';
+ ];
+ var summary=ui?ui.statsHTML(summaryItems,'Resumo de imóveis'):'';
  var filter=ui?ui.filterHTML('portfolio_properties_filter','Filtrar por imóvel, endereço ou inquilino','imóveis'):'';
  var panels=groups.map(function(group){
   var sections=['apartamentos','comerciais','outros'].map(function(cat){
@@ -313,6 +314,11 @@ async function cadastrosPage(){
   return '<section class="panel simple-panel property-address-group"><div class="panel-title"><h3>'+esc(group.label)+'</h3><span class="muted">'+groupCount(group)+' unidades</span></div>'+sections+'</section>'
  }).join('');
  E('content').innerHTML='<div class="matos-portfolio matos-portfolio-properties"><div class="simple-toolbar"><div><span class="portfolio-eyebrow">Gestão da carteira</span><h2>Cadastros</h2><p>Imóveis agrupados por endereço, apartamentos e unidades comerciais.</p></div>'+(currentRole==='admin'?'<button id="newProperty" class="btn primary">+ Cadastrar imóvel</button>':'<span class="notice access-readonly">Somente consulta</span>')+'</div>'+summary+filter+(panels||'<div class="panel simple-panel"><div class="empty">Nenhum imóvel cadastrado.</div></div>')+'</div>';
+ // A ilha React assume somente os quatro cartões; caso falhe, o HTML legado permanece.
+ var react=window.MatosReactPortfolio;
+ if(react&&typeof react.mountStats==='function'){
+  react.mountStats(E('content').querySelector('.matos-portfolio-properties .portfolio-stats'),summaryItems,'Resumo de imóveis')
+ }
  if(ui)ui.bindFilter({root:E('content'),id:'portfolio_properties_filter',rows:'.portfolio-table tbody tr',sections:'.property-subgroup',groups:'.property-address-group',noun:'imóveis'});
  if(E('newProperty'))E('newProperty').onclick=function(){openPropertyRegistration(inqs)}
 }
