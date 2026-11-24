@@ -33,6 +33,32 @@ describe('Primeira ilha React da carteira Matos', () => {
     expect(simple).toContain('ui.filterRows(');
   });
 
+  it('monta o filtro React sem acessar o banco ou recriar as linhas de imóveis', async () => {
+    const dom = new JSDOM('<main><div id="filter" class="portfolio-filterbar">Filtro anterior</div></main>', {
+      runScripts: 'outside-only',
+      pretendToBeVisual: true,
+      url: 'https://matos.example.invalid',
+    });
+    try {
+      dom.window.eval(bundle);
+      const api = dom.window.MatosReactPortfolio;
+      const target = dom.window.document.querySelector('#filter');
+      const onFilter = vi.fn(() => ({ visible: 2, total: 3 }));
+      expect(api.mountFilter(target, 3, onFilter)).toBe(true);
+      await vi.waitFor(() => {
+        expect(target.querySelector('#portfolio_properties_filter')).toBeTruthy();
+      }, { timeout: 2500 });
+      expect(target.querySelector('#portfolio_properties_filter_count').textContent).toContain('3 de 3 imóveis');
+      expect(target.getAttribute('data-react-filter')).toBe('mounted');
+      expect(target.querySelector('input').getAttribute('aria-label')).toContain('Filtrar por imóvel');
+      expect(onFilter).not.toHaveBeenCalled();
+      expect(api.mountFilter(null, 3, onFilter)).toBe(false);
+      api.cleanup();
+    } finally {
+      dom.window.close();
+    }
+  });
+
   it('monta um componente React real com rótulos escapados e números válidos', async () => {
     const dom = new JSDOM('<main><div id="stats" class="portfolio-stats">Cartões antigos</div></main>', {
       runScripts: 'outside-only',
