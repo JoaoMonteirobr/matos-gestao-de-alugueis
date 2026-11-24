@@ -2,14 +2,14 @@
 'use strict';
 
 // Define os menus visíveis para cada perfil de usuário.
-// Mesma navegação operacional para administrador e proprietário de consulta geral.
-// A diferença é a permissão: somente o administrador recebe ações de escrita.
+// Administrador opera cadastros e pagamentos; proprietários consultam painel e relatórios.
+// A autorização efetiva permanece no banco e nas funções protegidas.
 var adminBaseMenus=['Dashboard','Cadastros','Inquilinos','Contratos','Pagamentos','IPTU','Chamados','Financeiro','Gastos','Relatórios','Alertas'];
 // O proprietário consulta somente os painéis e relatórios, sem telas de cadastro.
 var consultaMenus=['Dashboard','Relatórios','Alertas'];
 if(typeof window!=='undefined')window.consultaMenus=consultaMenus;
 var adminMain=adminBaseMenus.concat(['Acessos','Configurações']);
-var ownerMain=['Dashboard','Alertas','Pagamentos','IPTU','Chamados','Relatórios'];
+var ownerMain=['Dashboard','Relatórios','Alertas'];
 var tenantMain=['Dashboard','Pagamentos','IPTU','Chamados','Alertas'];
 adminMenus=adminMain; ownerMenus=ownerMain; tenantMenus=tenantMain;
 // Liga cada tela simplificada à tabela correspondente no banco.
