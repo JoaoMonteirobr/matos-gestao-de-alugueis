@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "strict": true,
+    "lib": ["ES2022", "DOM"],
+    "types": [],
+    "rootDir": "src/search",
+    "outDir": ".",
+    "noEmitOnError": true,
+    "skipLibCheck": true,
+    "isolatedModules": true
+  },
+  "include": ["src/search/search-engine.ts"],
+  "exclude": []
+}

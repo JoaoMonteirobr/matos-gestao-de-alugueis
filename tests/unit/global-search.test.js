@@ -3,6 +3,7 @@ import path from 'node:path';
 import vm from 'node:vm';
 import { describe, expect, it, vi } from 'vitest';
 import { JSDOM } from 'jsdom';
+import * as searchCore from '../../search-engine.js';
 
 const source = fs.readFileSync(path.join(process.cwd(), 'global-search.js'), 'utf8');
 const html = fs.readFileSync(path.join(process.cwd(), 'index.html'), 'utf8');
@@ -37,6 +38,7 @@ function catalog() {
 
 function harness() {
   const dom = new JSDOM('<div class="appbar"><div class="app-search"><input class="inp"></div><div class="user"></div></div><aside class="side"><button data-page="Dashboard"></button><button data-page="Pagamentos"></button><button data-page="Relatórios"></button></aside>', { url: 'https://matos.example.invalid' });
+  dom.window.MatosSearchCore = searchCore;
   const context = {
     window: dom.window,
     document: dom.window.document,
@@ -107,7 +109,8 @@ describe('Busca global do Matos', () => {
 
   it('inclui CSS e JavaScript na página e na cópia Cloudflare', () => {
     expect(html).toContain('/global-search.css?v=1');
-    expect(html).toContain('/global-search.js?v=1');
+    expect(html).toContain('/global-search.js?v=2');
+    expect(html).toContain('<script type="module" src="/search-engine.js?v=1"></script><script type="module" src="/global-search.js?v=2"></script>');
     expect(assets).toContain('global-search.css');
     expect(assets).toContain('global-search.js');
   });
