@@ -70,6 +70,28 @@ describe('Busca global do Matos', () => {
     expect(items.find((x) => x.kind === 'cobrancas').period).toBe('2026-11');
   });
 
+  it('encontra o imóvel do inquilino por contrato quando o vínculo direto está ausente', () => {
+    const { api } = harness();
+    const data = catalog();
+    data.imoveis[0].inquilino_id = null;
+    const items = api.buildIndex(data);
+    const tenant = items.find((r) => r.kind === 'inquilinos');
+    expect(tenant.subtitle).toContain('Galeria Matos');
+    expect(api.searchIndex(items, 'jose', 'inquilinos')).toHaveLength(1);
+    expect(api.searchIndex(items, 'coronel alexandrino', 'contratos')).toHaveLength(1);
+  });
+
+  it('não inventa vínculo se contrato ou imóvel estiverem indisponíveis', () => {
+    const { api } = harness();
+    const data = catalog();
+    data.imoveis = [];
+    data.contratos = [];
+    const items = api.buildIndex(data);
+    const tenant = items.find((r) => r.kind === 'inquilinos');
+    expect(tenant.subtitle).toBe('Sem imóvel vinculado');
+    expect(api.searchIndex(items, 'jose', 'inquilinos')).toHaveLength(1);
+  });
+
   it('ignora acentos, encontra competência e valores e permite filtrar por tipo', () => {
     const { api } = harness();
     const items = api.buildIndex(catalog());
