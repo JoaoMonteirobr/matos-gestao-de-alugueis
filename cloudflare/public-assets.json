@@ -18,6 +18,8 @@
   "firebase-config.js",
   "gastos.css",
   "gastos.js",
+  "global-search.css",
+  "global-search.js",
   "icons/icon-192.png",
   "icons/icon-512.png",
   "index.html",

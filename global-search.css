@@ -1,0 +1,65 @@
+/* Busca global Matos — interface isolada do restante da navegação. */
+.matos-search-open{overflow:hidden!important}
+.appbar .matos-search-mobile{display:none;flex:0 0 42px;align-items:center;justify-content:center;width:42px;height:42px;border:1px solid rgba(255,255,255,.2);border-radius:12px;background:rgba(255,255,255,.1);color:#fff;cursor:pointer}
+.appbar .matos-search-mobile svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
+.appbar .matos-search-mobile:focus-visible,.matos-search-overlay button:focus-visible,.matos-search-overlay input:focus-visible{outline:3px solid #eebd57;outline-offset:2px}
+.appbar .app-search input{cursor:text}
+.matos-search-overlay{position:fixed;inset:0;z-index:6000;background:rgba(8,26,50,.68);backdrop-filter:blur(6px);display:flex;align-items:flex-start;justify-content:center;padding:7dvh 18px 18px;overflow-y:auto}
+.matos-search-dialog{width:min(100%,760px);max-height:86dvh;display:flex;flex-direction:column;overflow:hidden;background:#fff;color:#193553;border:1px solid rgba(28,78,124,.14);box-shadow:0 32px 90px rgba(1,25,52,.3);border-radius:20px}
+.matos-search-head{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:23px 26px 16px}
+.matos-search-head h2{margin:0;font-size:23px;line-height:1.2;font-weight:800;letter-spacing:-.04em;color:#0b2e55}
+.matos-search-head p{margin:6px 0 0;font-size:12px;color:#61778e;line-height:1.4}
+.matos-search-close{width:37px;height:37px;flex-shrink:0;border:1px solid #dbe6f1;border-radius:11px;background:#f5f9fc;color:#44617a;font-size:27px;line-height:1;cursor:pointer}
+.matos-search-input-wrap{margin:0 26px 17px;position:relative}
+.matos-search-input-wrap svg{position:absolute;left:16px;top:50%;transform:translateY(-50%);width:21px;height:21px;stroke:#3779b3;stroke-width:2;fill:none;stroke-linecap:round;pointer-events:none}
+.matos-search-input-wrap input{width:100%;min-width:0;height:54px;border:1px solid #b9cfe3;border-radius:13px;padding:0 65px 0 48px;background:#f7fbff;font-size:15px;color:#173f65;font-family:inherit}
+.matos-search-input-wrap input::placeholder{color:#7c90a4;opacity:1}
+.matos-search-input-wrap kbd{position:absolute;right:14px;top:50%;transform:translateY(-50%);background:#eaf1f8;color:#5e7387;border:1px solid #d8e4ee;border-radius:6px;font:700 10px/1.2 inherit;padding:6px;pointer-events:none}
+.matos-search-filters{display:flex;gap:7px;padding:0 26px 15px;overflow-x:auto;scrollbar-width:thin;flex-shrink:0}
+.matos-search-filter{border:1px solid #d8e4ef;border-radius:999px;background:#f5f8fc;color:#536f88;padding:8px 13px;font-size:12px;font-weight:700;font-family:inherit;white-space:nowrap;cursor:pointer}
+.matos-search-filter:hover{border-color:#94b6d8}
+.matos-search-filter.active{background:#0b4a89;color:#fff;border-color:#0b4a89}
+.matos-search-content{overflow-y:auto;overflow-x:hidden;min-height:180px;overscroll-behavior:contain;border-top:1px solid #edf1f5;flex:1;scrollbar-width:thin}
+.matos-search-count{margin:0;padding:13px 25px 8px;color:#627c94;font-size:11px;font-weight:650}
+.matos-search-results{padding:0 12px 12px;display:grid;gap:5px}
+.matos-search-result{position:relative;width:100%;min-width:0;border:1px solid transparent;border-radius:12px;display:grid;gap:4px;text-align:left;background:transparent;padding:13px 95px 13px 14px;color:#163b5f;cursor:pointer;font-family:inherit}
+.matos-search-result:hover,.matos-search-result:focus-visible{background:#f0f7fe;border-color:#b9d4ed}
+.matos-search-kind{width:max-content;max-width:100%;display:inline-block;background:#eaf2fb;color:#205c90;border-radius:6px;padding:4px 7px;text-transform:uppercase;letter-spacing:.07em;font-size:9px;line-height:1.2;font-weight:800}
+.matos-search-result strong{font-size:14px;line-height:1.3;overflow-wrap:anywhere}
+.matos-search-result small{font-size:12px;line-height:1.4;color:#657f94;overflow-wrap:anywhere}
+.matos-search-status{position:absolute;top:17px;right:13px;max-width:82px;overflow-wrap:anywhere;text-align:right;font-size:10px;font-weight:700;color:#41735e}
+.matos-search-state{padding:42px 28px;text-align:center;color:#617990;font-size:14px;line-height:1.6}
+.matos-search-foot{display:flex;justify-content:space-between;gap:15px;padding:14px 25px;border-top:1px solid #edf1f5;background:#f8fbfe;font-size:10px;color:#7a8da2}
+.matos-search-detail{padding:16px 26px 28px}
+.matos-search-back{border:0;background:transparent;color:#1762a0;cursor:pointer;font-weight:750;padding:8px 0 20px}
+.matos-search-detail h3{font-size:20px;line-height:1.3;letter-spacing:-.03em;color:#0a3159;margin:13px 0 5px}
+.matos-search-detail>p{font-size:13px;line-height:1.45;color:#677c91;margin:0 0 20px}
+.matos-search-detail dl{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1px;border:1px solid #e4edf4;background:#e4edf4;border-radius:12px;overflow:hidden;margin:0 0 18px}
+.matos-search-detail dl>div{background:#fff;padding:13px 15px;min-width:0}
+.matos-search-detail dt{font-size:10px;color:#6d8499;font-weight:700;margin-bottom:5px}
+.matos-search-detail dd{margin:0;overflow-wrap:anywhere;color:#163c61;font-size:13px;font-weight:700;line-height:1.45;white-space:pre-wrap}
+.matos-search-go{background:#0b4a89;border:1px solid #0b4a89;color:white;padding:12px 18px;border-radius:11px;font-size:13px;font-weight:800;cursor:pointer}
+.matos-search-go:hover{background:#0e5b9f}
+@media(max-width:850px){
+ .appbar .matos-search-mobile{display:flex!important}
+ .matos-search-overlay{padding:0!important;align-items:stretch}
+ .matos-search-dialog{width:100%;height:100dvh;max-height:100dvh;border-radius:0;border:0}
+ .matos-search-head{padding:20px 17px 14px}
+ .matos-search-head h2{font-size:21px}
+ .matos-search-head p{font-size:11px}
+ .matos-search-input-wrap{margin:0 16px 14px}
+ .matos-search-input-wrap input{font-size:16px}
+ .matos-search-filters{padding:0 16px 12px}
+ .matos-search-count{padding:12px 17px 8px}
+ .matos-search-results{padding:0 8px 14px}
+ .matos-search-result{padding:13px 85px 13px 10px}
+ .matos-search-foot{padding:11px 16px}
+ .matos-search-foot span:last-child{display:none}
+ .matos-search-detail{padding:13px 17px 24px}
+}
+@media(max-width:420px){
+ .matos-search-head p{max-width:240px}
+ .matos-search-detail dl{grid-template-columns:1fr}
+ .matos-search-head{gap:8px}
+}
+@media(prefers-reduced-motion:reduce){.matos-search-overlay{backdrop-filter:none}}
