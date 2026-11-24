@@ -17,6 +17,16 @@ O Matos continua sendo um site estático e **não precisa de um bundler em produ
 
 Ao modificar `src/search/search-engine.ts`, execute `npm run build:search` e inclua o `search-engine.js` gerado no mesmo PR. Nunca edite manualmente a versão compilada.
 
+## Etapa 2 — Modelos de domínio e vínculos
+
+As interfaces \`PropertyRecord\`, \`TenantRecord\`, \`ContractRecord\`, \`ChargeRecord\` e \`MaintenanceRecord\` são usadas no motor TypeScript em \`src/search/search-engine.ts\`. Correspondem aos campos de leitura da Busca global e permitem valores nulos para associações opcionais; não substituem validação de dados nem políticas RLS do banco.
+
+A função \`linkCatalog\` organiza os registros já autorizados em mapas por identificador e cria um vínculo de consulta para inquilinos. Sua ordem de preferência segue a regra preexistente: imóvel com \`inquilino_id\` associado diretamente e, quando ausente, primeiro contrato correspondente. Isso elimina pesquisas repetidas em listas grandes durante a montagem dos resultados.
+
+A interface continua usando \`global-search.js\` para carregamento por JWT/RLS, cache isolado por sessão, HTML escapado e navegação conforme o menu autorizado. Nenhum dado é modificado ou persistido pelo mecanismo tipado.
+
+As futuras migrações devem extrair operações de cadastro e validação para funções puras antes de modificar formulários e ações de escrita. Não confundir interfaces TypeScript com garantias de integridade: permissões continuam sendo verificadas no Supabase.
+
 ## Limites da etapa
 
 Não migramos contratos, pagamentos, autenticação, notificações nem toda a aplicação para TypeScript ou React. As próximas etapas devem migrar módulos isolados com testes, incluindo SQL/PostgreSQL quando houver ganho medido de desempenho. Qualquer alteração de RLS exige revisão de autorização separada.
