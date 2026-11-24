@@ -65,7 +65,7 @@ describe('documentos de contratos e exclusão segura',()=>{
   expect(source).not.toContain('/object/public/');
   expect(source).not.toContain('service_role');
   expect(html).toContain('/contract-pdfs.js?v=2');
-  expect(html).toContain('/simple-ui.js?v=26');
+  expect(html).toContain('/simple-ui.js?v=27');
   expect(ui).toContain('data-contract-attach');
   expect(ui).toContain('data-contract-view');
   expect(ui).toContain('data-contract-delete');
