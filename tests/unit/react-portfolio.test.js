@@ -21,8 +21,8 @@ describe('Primeira ilha React da carteira Matos', () => {
     expect(bundle).toContain('MatosReactPortfolio');
     expect(src).toContain('PortfolioFilter');
     expect(bundle).not.toContain('React.createElement');
-    expect(index).toContain('/portfolio-react.js?v=2');
-    expect(index).toContain('/simple-ui.js?v=26');
+    expect(index).toContain('/portfolio-react.js?v=3');
+    expect(index).toContain('/simple-ui.js?v=27');
     expect(list).toContain('portfolio-react.js');
     expect(pkg.dependencies.react).toBe('19.3.1');
     expect(pkg.dependencies['react-dom']).toBe('19.3.1');
