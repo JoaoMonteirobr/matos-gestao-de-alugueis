@@ -1,7 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import vm from 'node:vm';
-import ts from 'typescript';
 import { describe, expect, it } from 'vitest';
 
 const originCloudflare = 'https://matos-gestao-de-alugueis.joao-monteiro-0fb.workers.dev';
@@ -19,15 +18,15 @@ function corsFromSource(file, extraOrigins = '') {
   const end = source.indexOf('export function json(', start);
   if (start < 0 || end < 0) throw new Error('Trecho CORS ausente: ' + file);
   const excerpt = source.slice(start, end);
-  const compiled = ts.transpileModule(excerpt, {
-    compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
-  }).outputText;
+  // Isola as duas únicas anotações TS do trecho sem alterar a lógica testada.
+  const runnable = excerpt
+    .replace('export function corsHeaders(req: Request)', 'function corsHeaders(req)')
+    .replace('const headers: Record<string, string> = {', 'const headers = {');
   const context = {
-    exports: {},
     Deno: { env: { get: (key) => key === 'ALLOWED_ORIGINS' ? extraOrigins : undefined } },
   };
-  vm.runInNewContext(compiled, context, { timeout: 1000 });
-  return (origin) => context.exports.corsHeaders({
+  const corsHeaders = vm.runInNewContext(runnable + '\ncorsHeaders', context, { timeout: 1000 });
+  return (origin) => corsHeaders({
     headers: { get: (key) => key === 'origin' ? origin : null },
   });
 }
