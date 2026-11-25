@@ -2,6 +2,8 @@ import { createClient } from 'npm:@supabase/supabase-js@2.117.2';
 
 const DEFAULT_ORIGINS = [
   'https://gestao-alugueis-jp.vercel.app',
+  // Domínio fixo da cópia Cloudflare. Sem curingas para não liberar subdomínios alheios.
+  'https://matos-gestao-de-alugueis.joao-monteiro-0fb.workers.dev',
   'http://127.0.0.1:4173',
   'http://localhost:4173',
 ];
